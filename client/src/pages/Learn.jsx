@@ -1,0 +1,254 @@
+import { useMemo, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useApi } from '../lib/useApi.js';
+import { api } from '../lib/api.js';
+import { ErrorBox, Loading, MiniMarkdown } from '../components/common.jsx';
+import { useAuth } from '../store/auth.js';
+import { useUI } from '../store/ui.js';
+
+const RESEARCH_STEPS = ['Searching trusted sources…', 'Reading & taking notes…', 'Writing an original lesson…', 'Running the originality check…'];
+
+function ResearchEngine({ onCreated }) {
+  const user = useAuth((s) => s.user);
+  const [topic, setTopic] = useState('');
+  const [audience, setAudience] = useState('adult');
+  const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(0);
+  const [error, setError] = useState(null);
+
+  async function run(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setStep(0);
+    const timer = setInterval(() => setStep((s) => Math.min(s + 1, RESEARCH_STEPS.length - 1)), 9000);
+    try {
+      const { lesson } = await api.post('/lessons/research', { topic, ...(user.role === 'admin' ? { audience } : {}) });
+      onCreated(lesson);
+      setTopic('');
+    } catch (err) {
+      setError(err);
+    } finally {
+      clearInterval(timer);
+      setBusy(false);
+    }
+  }
+
+  const ideas = ['Getting customers from a farmers market booth', 'Free ways to get Google reviews', 'Building an email list from zero', 'Partnering with nearby businesses'];
+
+  return (
+    <section className="card card-accent">
+      <h2>🧠 AI Research Engine</h2>
+      <p className="muted">
+        Ask about any low-cost marketing topic. The AI researches trusted sources (SBA, FTC, SCORE, HBR and more), then writes an
+        <b> original</b> lesson with citations. Every lesson passes an automatic plagiarism check before you see it.
+      </p>
+      <ErrorBox error={error} />
+      {busy ? (
+        <div className="loading-orbit" role="status">
+          <div className="rocket" aria-hidden>🔎</div>
+          <b>{RESEARCH_STEPS[step]}</b>
+          <span className="muted small">This takes about a minute.</span>
+        </div>
+      ) : (
+        <form onSubmit={run}>
+          <div className="field">
+            <label htmlFor="topic">Topic</label>
+            <input id="topic" type="text" value={topic} maxLength={160} onChange={(e) => setTopic(e.target.value)} placeholder="e.g. How to use flyers that people actually keep" />
+          </div>
+          <div className="row" style={{ marginBottom: 14 }}>
+            {ideas.map((i) => (
+              <button type="button" key={i} className="chip" style={{ cursor: 'pointer' }} onClick={() => setTopic(i)}>{i}</button>
+            ))}
+          </div>
+          {user.role === 'admin' && (
+            <div className="field">
+              <label htmlFor="aud">Write for</label>
+              <select id="aud" value={audience} onChange={(e) => setAudience(e.target.value)}>
+                <option value="kid">Kid Entrepreneurs</option>
+                <option value="adult">Adult Business Owners</option>
+                <option value="professional">Professionals</option>
+              </select>
+            </div>
+          )}
+          <button className="btn btn-primary" disabled={topic.trim().length < 4}>Research & write lesson</button>
+        </form>
+      )}
+    </section>
+  );
+}
+
+export function Library() {
+  const { data, error, loading, setData } = useApi('/lessons');
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState('all');
+
+  const lessons = useMemo(() => {
+    const all = data?.lessons ?? [];
+    if (filter === 'mine') return all.filter((l) => l.ownerId);
+    if (filter === 'todo') return all.filter((l) => !l.completed);
+    return all;
+  }, [data, filter]);
+
+  return (
+    <div className="stack" style={{ '--gap': '22px' }}>
+      <header>
+        <h1>Learning Library</h1>
+        <p className="muted">Short, original lessons on marketing that costs little or nothing.</p>
+      </header>
+      <div className="tabs" role="tablist">
+        {[['all', 'All'], ['todo', 'Not done yet'], ['mine', 'AI-researched']].map(([k, label]) => (
+          <button key={k} role="tab" aria-selected={filter === k} className="tab" onClick={() => setFilter(k)}>{label}</button>
+        ))}
+      </div>
+      <ErrorBox error={error} />
+      {loading ? (
+        <div className="grid"><div className="skeleton" /><div className="skeleton" /><div className="skeleton" /></div>
+      ) : (
+        <div className="grid stagger">
+          {lessons.map((l) => (
+            <Link key={l.id} to={`/app/learn/${l.id}`} className="card interactive card-accent">
+              <div className="row" style={{ marginBottom: 10 }}>
+                <span className="chip">{l.level}</span>
+                <span className="chip">⏱ {l.estimatedMinutes} min</span>
+                <span className="chip chip-success">💸 {l.costLevel}</span>
+                {l.completed && <span className="chip chip-brand">✓ Done</span>}
+                {!l.published && <span className="chip">Private draft</span>}
+              </div>
+              <h3>{l.title}</h3>
+              <p className="muted small" style={{ margin: 0 }}>{l.summary}</p>
+            </Link>
+          ))}
+          {lessons.length === 0 && <p className="muted">Nothing here yet.</p>}
+        </div>
+      )}
+      <ResearchEngine
+        onCreated={(lesson) => {
+          setData((d) => ({ lessons: [lesson, ...(d?.lessons ?? [])] }));
+          navigate(`/app/learn/${lesson.id}`);
+        }}
+      />
+    </div>
+  );
+}
+
+export function LessonView() {
+  const { id } = useParams();
+  const { data, error, loading } = useApi(`/lessons/${id}`);
+  const refresh = useAuth((s) => s.refresh);
+  const celebrate = useUI((s) => s.celebrate);
+  const [answers, setAnswers] = useState({});
+  const [result, setResult] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  if (error) return <ErrorBox error={error} />;
+  if (loading || !data) return <Loading />;
+  const { lesson } = data;
+  const quiz = lesson.quiz ?? [];
+
+  async function submitQuiz() {
+    setBusy(true);
+    try {
+      const r = await api.post(`/lessons/${lesson.id}/complete`, { answers: quiz.map((_, i) => answers[i] ?? -1) });
+      setResult(r);
+      celebrate({ badges: r.newBadges, xp: r.xpEarned, title: r.newBadges.length ? 'Lesson complete!' : undefined });
+      refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <article className="two-col">
+      <div className="stack" style={{ '--gap': '18px' }}>
+        <Link to="/app/learn" className="muted small">← Library</Link>
+        <header>
+          <div className="row" style={{ marginBottom: 10 }}>
+            <span className="chip">{lesson.level}</span>
+            <span className="chip">⏱ {lesson.estimatedMinutes} min</span>
+            <span className="chip chip-success">💸 {lesson.costLevel}</span>
+          </div>
+          <h1>{lesson.title}</h1>
+          <p className="muted" style={{ fontSize: '1.1rem' }}>{lesson.summary}</p>
+        </header>
+        <div className="card prose">
+          {lesson.sections.map((s, i) => (
+            <section key={i}>
+              <h3>{s.heading}</h3>
+              <MiniMarkdown text={s.body} />
+              {s.sourceRefs?.length > 0 && (
+                <p className="small muted">
+                  Sources:{' '}
+                  {s.sourceRefs.map((r) => (
+                    <a key={r} href={`#src-${r}`} style={{ marginRight: 6 }}>[{r + 1}]</a>
+                  ))}
+                </p>
+              )}
+            </section>
+          ))}
+        </div>
+
+        {quiz.length > 0 && (
+          <div className="card">
+            <h2>Quick check ✏️</h2>
+            {quiz.map((q, qi) => (
+              <fieldset key={qi} style={{ border: 0, padding: 0, margin: '0 0 18px' }}>
+                <legend style={{ fontWeight: 700, marginBottom: 8 }}>{qi + 1}. {q.question}</legend>
+                <div className="segmented">
+                  {q.options.map((opt, oi) => {
+                    const r = result?.results?.[qi];
+                    const mark = r ? (oi === r.answerIndex ? ' ✅' : answers[qi] === oi ? ' ❌' : '') : '';
+                    return (
+                      <button type="button" key={oi} className="choice" aria-pressed={answers[qi] === oi} disabled={!!result} onClick={() => setAnswers({ ...answers, [qi]: oi })}>
+                        {opt}{mark}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            ))}
+            {result ? (
+              <div className="alert alert-success">You got {result.correct}/{result.total}! {result.xpEarned ? `+${result.xpEarned} XP` : '(Already completed — no extra XP.)'}</div>
+            ) : (
+              <button className="btn btn-primary" onClick={submitQuiz} disabled={busy || Object.keys(answers).length < quiz.length}>
+                {data.completed ? 'Check answers' : 'Finish lesson'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <aside className="stack" style={{ '--gap': '18px' }}>
+        <div className="card">
+          <h3>🎯 Key takeaways</h3>
+          <ul style={{ paddingLeft: '1.2em', lineHeight: 1.7 }}>{lesson.keyTakeaways.map((t, i) => <li key={i}>{t}</li>)}</ul>
+        </div>
+        <div className="card">
+          <h3>🛠 Try this week</h3>
+          <ol className="checklist">{lesson.actionSteps.map((t, i) => <li key={i}><span aria-hidden>☐</span>{t}</li>)}</ol>
+        </div>
+        <div className="card">
+          <h3>📎 Sources & attribution</h3>
+          <p className="small muted">
+            This lesson is original writing that explains ideas from the sources below in our own words. Visit them for the full details.
+          </p>
+          <ol style={{ paddingLeft: '1.3em' }} className="small">
+            {lesson.sources.map((s, i) => (
+              <li key={i} id={`src-${i}`} style={{ marginBottom: 6 }}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">{s.title || s.url}</a>
+              </li>
+            ))}
+          </ol>
+          {lesson.originality && (
+            <div className="row small">
+              <span className={`chip ${lesson.originality.passed ? 'chip-success' : 'chip-danger'}`}>
+                {lesson.originality.passed ? '✓ Originality check passed' : '⚠ Needs review'}
+              </span>
+              <span className="muted">{lesson.generatedBy === 'ai' ? 'AI-researched' : 'Written by staff'}</span>
+            </div>
+          )}
+        </div>
+      </aside>
+    </article>
+  );
+}

@@ -1,0 +1,12 @@
+node_modules/
+client/dist/
+server/data/
+server/uploads/
+.env
+
+# Firebase emulator logs / secrets
+*-debug.log
+service-account*.json
+.firebase/
+*.log
+client/dist-preview/
