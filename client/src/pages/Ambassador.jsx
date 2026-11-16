@@ -210,10 +210,12 @@ function Member({ s }) {
       <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#9b6bff,#3dd6ff)' }}>
         <div className="row spread">
           <div style={{ flex: '1 1 300px' }}>
-            <h2 style={{ marginBottom: 6 }}>🧪 Next: your own Marketing Lab</h2>
-            <p className="muted small" style={{ margin: 0 }}>Earn your Ambassador certificate to unlock a Lab where you market <b>your own</b> product or service with all six AI tools, a Canva-style Design Studio and a Video Maker with free music.</p>
+            <h2 style={{ marginBottom: 6 }}>🧪 Your Marketing Lab is open</h2>
+            <p className="muted small" style={{ margin: 0 }}>{s.mission?.certificateId
+              ? <>You're certified: the Lab is fully unlocked for <b>your own</b> brand too.</>
+              : <>Use Creator, all six AI tools, the Design Studio and the Video Maker now, in <b>Partner mode</b> (everything promotes the {s.company.name}). Earn your Ambassador certificate to unlock <b>your own brand</b>.</>}</p>
           </div>
-          <Link className="btn" to="/app/lab">{s.mission?.certificateId ? 'Open my Lab' : 'See what\'s inside'}</Link>
+          <Link className="btn btn-primary" to="/app/lab">Open my Lab</Link>
         </div>
       </div>
 

@@ -23,6 +23,10 @@ export const config = {
   // AI
   aiEnabled: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),
   aiModel: process.env.AI_MODEL || 'claude-opus-5-5',
+  // small, cheap model the Partner Guard asks only when its rules are unsure
+  guardModel: process.env.AI_GUARD_MODEL || 'claude-haiku-5-5',
+  // AI tokens each learner may use per day before the Director switches to the free engine
+  aiDailyTokenBudget: Number(process.env.AI_DAILY_TOKEN_BUDGET || 60000),
 
   // Scoring: certificates require PASS_THRESHOLD (85% = professional quality); below it,
   // learners retry until they reach it. DISTINCTION_THRESHOLD earns the gold badge.

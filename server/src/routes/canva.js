@@ -13,6 +13,9 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { config } from '../config.js';
 import { requireAuth } from '../auth.js';
+import { labMode } from './lab.js';
+import { guard } from '../agents/director.js';
+import { getBrief } from '../company.js';
 
 const router = Router();
 const AUTHORIZE_URL = 'https://www.canva.com/api/oauth/authorize';
@@ -144,11 +147,16 @@ const SendSchema = z.object({
   png: z.string().regex(/^data:image\/png;base64,/).max(12_000_000),
   width: z.number().int().min(40).max(8000),
   height: z.number().int().min(40).max(8000),
+  texts: z.array(z.string().max(4000)).max(60).optional(),
 });
 
 router.post('/send-design', requireAuth, async (req, res, next) => {
   const parsed = SendSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'That design could not be sent.' });
+  if (labMode(req.user) === 'partner') {
+    const check = await guard({ kind: 'content', texts: [parsed.data.name, ...(parsed.data.texts ?? [])], brief: getBrief(), user: req.user });
+    if (!check.ok) return res.status(422).json({ error: check.message, guard: check });
+  }
   try {
     const token = await accessTokenFor(req.user);
     const { name, png, width, height } = parsed.data;

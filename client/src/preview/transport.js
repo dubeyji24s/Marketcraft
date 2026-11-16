@@ -3,8 +3,9 @@
 // browser. AI features answer with a clear "needs the full app" message.
 import DATA from './data.json';
 import { runStarter } from '@starter';
+import { checkRelevance, checkRequest, docText } from '@guard';
 
-const KEY = 'mc-preview-db-v6';
+const KEY = 'mc-preview-db-v7';
 const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
@@ -59,7 +60,7 @@ function seed() {
     challenges,
     interviews: DATA.interviews.map((i) => stamp(i)),
     submissions: [],
-    brief: { displayName: 'Partner Website', name: '', website: '', tagline: '', description: '', products: '', audience: '', keyMessages: '', offers: '', voice: '', dos: '', donts: '', hashtags: '' },
+    brief: { displayName: 'Partner Website', name: 'Partner Website', description: 'A smart shopping website that curates the top 6 products for any need, from gifts to winter boots.', products: 'Curated top-6 product lists\nGift finder', hashtags: '#PartnerPicks', keyMessages: 'Saves time\nHonest picks', website: '', tagline: '', audience: '', offers: '', voice: '', dos: '', donts: '' },
     showcase: [
       stamp({ userId: users[1].id, title: 'Sample: 30-second bakery reel', description: 'Example community post. Hook: steam rising from fresh bread. Target: local families. CTA: visit Saturday.', channel: 'social', tags: ['bakery', 'reel'], visibility: 'community', status: 'approved', videoUrl: 'https://www.youtube.com/', cheers: [] }),
       stamp({ userId: users[2].id, title: 'Sample: lemonade stand sign', description: 'Example of a community post waiting for admin approval.', channel: 'outdoor', tags: ['kids'], visibility: 'community', status: 'pending', videoUrl: 'https://www.youtube.com/', cheers: [] }),
@@ -460,16 +461,24 @@ on('POST', '/showcase/:id/review', ({ id: sid }, body) => {
 });
 
 // lab
-const labUnlocked = (u) => u.role === 'admin' || db().certificates.some((c) => c.userId === u.id && c.kind === 'ambassador' && c.score >= DATA.passThreshold);
-const needLab = () => { const u = need(); if (!labUnlocked(u)) fail(403, 'Your Marketing Lab unlocks when you earn the Ambassador certificate (complete the Ambassador Mission).'); return u; };
+const missionCert = (u) => db().certificates.some((c) => c.userId === u.id && c.kind === 'ambassador' && c.score >= DATA.passThreshold);
+const labMode = (u) => (u.role === 'admin' || missionCert(u) ? 'own' : u.ambassador ? 'partner' : null);
+const needLab = () => { const u = need(); if (!labMode(u)) fail(403, 'Join the Ambassador Program to open your Marketing Lab.'); return u; };
+const partnerBrief = () => ({ ...db().brief, name: db().brief.name || db().brief.displayName });
+const agentStats = { director: [0, 0, 0], guard: [0, 0, 0], copywriter: [0, 0, 0], designer: [0, 0, 0], video: [0, 0, 0] }; // runs, re-used, stopped
+const guardRun = (kind, texts) => { agentStats.guard[0]++; const r = kind === 'request' ? checkRequest(texts.join(' '), partnerBrief()) : checkRelevance(texts, partnerBrief()); if (!r.ok) agentStats.guard[2]++; return r; };
 const BRAND_KEYS = ['name', 'website', 'tagline', 'description', 'products', 'audience', 'keyMessages', 'offers', 'voice', 'dos', 'donts', 'hashtags'];
 on('GET', '/lab/status', () => {
   const u = need();
   const mission = db().challenges.find((c) => c.kind === 'ambassador');
-  return { unlocked: labUnlocked(u), missionId: mission?.id ?? null, passThreshold: DATA.passThreshold, brand: { ...Object.fromEntries(BRAND_KEYS.map((k) => [k, ''])), ...(u.lab?.brand ?? {}) }, tools: DATA.tools, aiEnabled: false };
+  const mode = labMode(u);
+  const b = partnerBrief();
+  const partner = u.ambassador ? { displayName: b.displayName, name: b.name, website: b.website, description: b.description, products: b.products, hashtags: b.hashtags, keyMessages: b.keyMessages, tagline: b.tagline, audience: b.audience, referralLink: ambassadorStatus(u).referralLink } : null;
+  return { unlocked: Boolean(mode), mode, joined: Boolean(u.ambassador), partner, missionId: mission?.id ?? null, passThreshold: DATA.passThreshold, brand: { ...Object.fromEntries(BRAND_KEYS.map((k) => [k, ''])), ...(u.lab?.brand ?? {}) }, tools: DATA.tools, aiEnabled: false };
 });
 on('PUT', '/lab/brand', (_, body) => {
   const u = needLab();
+  if (labMode(u) !== 'own') fail(403, 'Your own brand unlocks with the Ambassador certificate. For now, the Lab makes content for the partner website.');
   if (!body.name?.trim()) fail(400, 'Give your brand a name.');
   if (body.website && !/^https?:\/\//.test(body.website)) fail(400, 'Website must be a full link, like https://…');
   const first = !u.lab?.brand?.name;
@@ -478,6 +487,14 @@ on('PUT', '/lab/brand', (_, body) => {
 });
 on('POST', '/lab/tools/:id', ({ id: toolId }, body) => {
   const u = needLab();
+  agentStats.director[0]++; agentStats.copywriter[0]++;
+  if (labMode(u) === 'partner') {
+    const b = partnerBrief();
+    if (!b.description) fail(409, 'The partner brief has not been filled in yet. Ask an admin to complete it.');
+    const g = guardRun('request', Object.values(body.inputs ?? {}).map(String));
+    if (!g.ok) fail(422, g.message);
+    return starterRun(u, toolId, body.inputs, b, 'ambassador', ambassadorStatus(u).referralLink, 'lab');
+  }
   const brand = u.lab?.brand;
   if (!brand?.name || !brand.description) fail(409, 'Fill in "My brand" first (at least the name and what it does), so the tools know what to market.');
   return starterRun(u, toolId, body.inputs, brand, 'own', brand.website, 'lab');
@@ -487,8 +504,15 @@ on('GET', '/lab/runs', () => { const u = needLab(); return { runs: db().toolRuns
 const designMeta = ({ doc, ...d }) => ({ ...d, width: doc.width, height: doc.height, preset: doc.preset ?? null });
 on('GET', '/lab/designs', () => { const u = needLab(); return { designs: db().designs.filter((d) => d.userId === u.id).map(designMeta) }; });
 on('GET', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); return { design: db().designs.find((d) => d.id === did && d.userId === u.id) ?? fail(404, 'Design not found.') }; });
-on('POST', '/lab/designs', (_, body) => { const u = needLab(); const d = { id: id(), createdAt: now(), updatedAt: now(), userId: u.id, name: body.name, doc: body.doc }; db().designs.unshift(d); return { design: designMeta(d) }; });
-on('PUT', '/lab/designs/:id', ({ id: did }, body) => { const u = needLab(); const d = db().designs.find((x) => x.id === did && x.userId === u.id) ?? fail(404, 'Design not found.'); Object.assign(d, { name: body.name, doc: body.doc, updatedAt: now() }); return { design: designMeta(d) }; });
+const guardDesign = (u, doc) => { if (labMode(u) === 'partner') { const g = guardRun('content', docText(doc)); if (!g.ok) fail(422, g.message); } };
+on('POST', '/lab/guard', (_, body) => { const u = needLab(); if (labMode(u) !== 'partner') return { ok: true, level: 'own-mode', message: '' }; return guardRun(body.kind ?? 'content', body.texts ?? []); });
+on('GET', '/lab/agents', () => {
+  needLab();
+  const AG = { director: ['Director', '🧭', 'Plans each request, re-uses earlier answers and keeps token use inside the budget.'], guard: ['Partner Guard', '🛡️', 'Checks that requests, designs, videos and AI results are about the partner (in Partner mode).'], copywriter: ['Copywriter', '✍️', 'Runs the six marketing tools: personas, posts, scripts, ads, calendars and checks.'], designer: ['Designer', '🎨', 'Creator: turns a description into finished designs (runs in your browser, 0 tokens).'], video: ['Video Producer', '🎬', 'Builds video scenes and free music (runs in your browser, 0 tokens).'] };
+  return { agents: Object.entries(AG).map(([id, [name, icon, job]]) => ({ id, name, icon, job, runs: agentStats[id][0], cacheHits: agentStats[id][1], blocked: agentStats[id][2], tokens: 0, aiCalls: 0 })), aiEnabled: false, dailyBudget: 60000, usedToday: 0, cacheSize: 0 };
+});
+on('POST', '/lab/designs', (_, body) => { const u = needLab(); guardDesign(u, body.doc); const d = { id: id(), createdAt: now(), updatedAt: now(), userId: u.id, name: body.name, doc: body.doc }; db().designs.unshift(d); return { design: designMeta(d) }; });
+on('PUT', '/lab/designs/:id', ({ id: did }, body) => { const u = needLab(); guardDesign(u, body.doc); const d = db().designs.find((x) => x.id === did && x.userId === u.id) ?? fail(404, 'Design not found.'); Object.assign(d, { name: body.name, doc: body.doc, updatedAt: now() }); return { design: designMeta(d) }; });
 on('DELETE', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); db().designs = db().designs.filter((x) => !(x.id === did && x.userId === u.id)); return { ok: true }; });
 
 // ---- entry point used by lib/api.js ------------------------------------------------

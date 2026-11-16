@@ -321,20 +321,27 @@ function fillLinks(value, link) {
   return value;
 }
 
-export async function runTool({ tool, inputs, brief, user, referralLink, mode = 'ambassador' }) {
+/**
+ * Run one tool. `track(usage)` receives token usage of AI calls; `forceStarter` makes the
+ * Director use the free engine (e.g. when a daily token budget is spent).
+ */
+export async function runTool({ tool, inputs, brief, user, referralLink, mode = 'ambassador', track, forceStarter = false }) {
   const client = getClient();
   if (!brief?.description) throw new AIError('The company brief has not been filled in yet. Ask an admin to complete it.', 409);
   // No AI key: the free Starter engine writes the result from the brief.
-  if (!client) return fillLinks(runStarter(tool.id, inputs, brief, { mode, referralLink }), referralLink);
+  if (!client || forceStarter) return fillLinks(runStarter(tool.id, inputs, brief, { mode, referralLink }), referralLink);
   try {
     const res = await client.beta.messages.parse(
       baseParams({
         max_tokens: 16000,
         output_config: { effort: 'low', format: betaZodOutputFormat(tool.output) },
+        // the brand system prompt repeats across calls: let the API cache it
+        cache_control: { type: 'ephemeral' },
         system: systemPrompt(brief, user, mode),
         messages: [{ role: 'user', content: tool.task(inputs) }],
       }),
     );
+    track?.(res.usage);
     assertNotRefused(res);
     if (!res.parsed_output) throw new AIError('The AI returned an incomplete result. Please try again.');
     return fillLinks(res.parsed_output, referralLink);

@@ -170,12 +170,13 @@ async function shrinkImage(file, max = 1600) {
 }
 
 // ---- editor ------------------------------------------------------------------------
-export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving, actions }) {
+export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving, actions, guardDoc }) {
   const [doc, setDoc] = useState(initial ?? blankDoc());
   const [name, setName] = useState(initialName);
   const [sel, setSel] = useState(null);
   const [history, setHistory] = useState([]);
   const [exporting, setExporting] = useState(false);
+  const [guardMsg, setGuardMsg] = useState(null);
   const wrapRef = useRef(null);
   const fileRef = useRef(null);
   const [boxW, setBoxW] = useState(600);
@@ -261,6 +262,12 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
   }
 
   async function exportAs(type) {
+    const verdict = guardDoc?.(doc);
+    if (verdict && !verdict.ok) {
+      setGuardMsg(verdict.message);
+      return;
+    }
+    setGuardMsg(null);
     setExporting(true);
     try {
       const canvas = await renderDoc(doc);
@@ -287,6 +294,7 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
         <button className="btn btn-sm" onClick={() => exportAs('image/jpeg')} disabled={exporting}>JPG</button>
         {actions?.({ doc, name })}
       </div>
+      {guardMsg && <div className="alert alert-error small" role="alert">🛡️ {guardMsg}</div>}
 
       <div className="designer-body">
         <aside className="designer-tools" aria-label="Add elements">

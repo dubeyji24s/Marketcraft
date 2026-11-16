@@ -11,6 +11,7 @@ import { designChoicesFromRun, scenesFromScript } from '../components/templates.
 import Creator from '../components/Creator.jsx';
 import { CanvaConnectCard, SendToCanvaButton, useCanva } from '../components/CanvaConnect.jsx';
 import { useLocation } from 'react-router-dom';
+import { checkRelevance, checkRequest, docText, scenesText } from '@guard';
 import VideoMaker from '../components/VideoMaker.jsx';
 import { downloadBlob, downloadText, outputToText, safeName } from '../lib/download.js';
 import { useUI } from '../store/ui.js';
@@ -23,6 +24,7 @@ const TABS = [
   ['design', '🎨', 'Design Studio'],
   ['video', '🎬', 'Video Maker'],
   ['files', '📁', 'My files'],
+  ['team', '🤖', 'AI team'],
 ];
 
 function Locked({ s }) {
@@ -34,8 +36,8 @@ function Locked({ s }) {
       </header>
       <div className="card" style={{ textAlign: 'center' }}>
         <div style={{ fontSize: '3rem' }} aria-hidden>🔒</div>
-        <h2>Unlock it with your Ambassador certificate</h2>
-        <p className="muted">Pass a Studio challenge, join the Ambassador Program, then complete the <b>Ambassador Mission</b> for the partner website with {s.passThreshold}% or more.</p>
+        <h2>Opens when you join the Ambassador Program</h2>
+        <p className="muted">Pass a Studio challenge at {s.passThreshold}%+, then join the Ambassador Program. Your Lab opens in <b>Partner mode</b> (everything you make promotes the partner website). Earn the Ambassador certificate to unlock <b>your own brand</b>.</p>
         <div className="row" style={{ justifyContent: 'center' }}>
           <Link className="btn btn-primary" to="/app/ambassador">Go to the Ambassador Program</Link>
           {s.missionId && <Link className="btn" to={`/app/studio/${s.missionId}`}>Ambassador Mission</Link>}
@@ -64,6 +66,64 @@ const BRAND_FIELDS = [
   ['donts', "Don'ts", 'textarea', 'e.g. never promise results'],
   ['hashtags', 'Hashtags', 'text', '#…'],
 ];
+
+function PartnerCard({ partner, missionId }) {
+  return (
+    <div className="card card-accent">
+      <h2>🤝 You're creating for the {partner.displayName}</h2>
+      <p className="muted small">Until you earn your Ambassador certificate, everything you make in the Lab promotes our partner. The 🛡️ Partner Guard checks each request, design and video and helps you keep it on-topic. Creator and the AI tools add the partner's name for you.</p>
+      <dl className="kv">
+        <dt>Promote</dt><dd><b>{partner.name}</b>{partner.tagline ? ` · ${partner.tagline}` : ''}</dd>
+        {partner.description && <><dt>What it does</dt><dd>{partner.description}</dd></>}
+        {partner.products && <><dt>Products</dt><dd style={{ whiteSpace: 'pre-wrap' }}>{partner.products}</dd></>}
+        {partner.hashtags && <><dt>Hashtags</dt><dd>{partner.hashtags}</dd></>}
+        {partner.referralLink && <><dt>Your link</dt><dd><code style={{ wordBreak: 'break-all' }}>{partner.referralLink}</code></dd></>}
+      </dl>
+      <div className="row" style={{ marginTop: 14 }}>
+        {missionId && <Link className="btn btn-primary" to={`/app/studio/${missionId}`}>🌟 Earn the Ambassador certificate</Link>}
+        <span className="muted small">…to unlock <b>My brand</b> and market your own product.</span>
+      </div>
+    </div>
+  );
+}
+
+function AgentsPanel() {
+  const { data, error, reload } = useApi('/lab/agents');
+  if (error) return <ErrorBox error={error} />;
+  if (!data) return <Loading />;
+  const saved = data.agents.reduce((n, a) => n + a.cacheHits, 0);
+  return (
+    <div className="stack" style={{ '--gap': '16px' }}>
+      <div className="card">
+        <div className="row spread">
+          <h2 style={{ margin: 0 }}>🤖 Your AI team</h2>
+          <button className="btn btn-sm btn-ghost" onClick={reload}>Refresh</button>
+        </div>
+        <p className="muted small">The <b>Director</b> sends each job to the right agent. Rules and saved answers come first, so most jobs cost <b>0 tokens</b>; a small AI model is only asked when the Guard is unsure, and only when AI is switched on.</p>
+        <div className="row small" style={{ gap: 8 }}>
+          <span className="chip">{data.aiEnabled ? '⚡ AI on' : '⚡ Free Starter mode (0 tokens)'}</span>
+          <span className="chip chip-success">♻️ {saved} answers re-used</span>
+          {data.aiEnabled && <span className="chip">Today: {data.usedToday?.toLocaleString() ?? 0} / {data.dailyBudget.toLocaleString()} tokens</span>}
+        </div>
+      </div>
+      <div className="grid stagger" style={{ '--min': '240px' }}>
+        {data.agents.map((a) => (
+          <div key={a.id} className="card agent-card">
+            <div className="row" style={{ gap: 10 }}><span className="agent-icon" aria-hidden>{a.icon}</span><h3 style={{ margin: 0 }}>{a.name}</h3></div>
+            <p className="muted small">{a.job}</p>
+            <div className="row small" style={{ gap: 6 }}>
+              <span className="chip">{a.runs} jobs</span>
+              {a.cacheHits > 0 && <span className="chip chip-success">{a.cacheHits} re-used</span>}
+              {a.blocked > 0 && <span className="chip chip-danger">{a.blocked} stopped</span>}
+              <span className="chip">{a.tokens.toLocaleString()} tokens</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="hint">Designer and Video Producer run in your browser, so they never use tokens. Counts reset when the server restarts.</p>
+    </div>
+  );
+}
 
 function BrandForm({ brand, onSaved }) {
   const [f, setF] = useState(brand);
@@ -165,7 +225,8 @@ function Toolkit({ s, brandReady, onRun, onHandoff }) {
       </nav>
 
       <div className="stack" style={{ '--gap': '16px', minWidth: 0 }}>
-        {!brandReady && <div className="alert alert-info small">Fill in <b>My brand</b> first so the tools know what to market.</div>}
+        {!brandReady && <div className="alert alert-info small">{s.mode === 'partner' ? 'The partner brief is not ready yet. Ask an admin to complete it.' : <>Fill in <b>My brand</b> first so the tools know what to market.</>}</div>}
+        {s.mode === 'partner' && <div className="alert alert-info small">🛡️ <b>Partner mode:</b> results promote <b>{s.brand.name}</b>, with your ambassador disclosure and referral link added for you.</div>}
         {!s.aiEnabled && <div className="alert alert-info small">⚡ <b>Free Starter mode:</b> results are written from <b>your brand</b> by Marketcraft's built-in engine, free and instant. Edit them to sound like you.</div>}
         <form className="card" onSubmit={run}>
           <div className="row spread">
@@ -225,7 +286,7 @@ function Toolkit({ s, brandReady, onRun, onHandoff }) {
   );
 }
 
-function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva }) {
+function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva, guardDoc }) {
   const { data, reload } = useApi('/lab/designs');
   const [open, setOpen] = useState(handoff?.kind === 'doc' ? { name: handoff.name, doc: handoff.doc } : null); // { id?, name, doc }
   const [saving, setSaving] = useState(false);
@@ -258,7 +319,7 @@ function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva }) {
     return (
       <div className="stack" style={{ '--gap': '12px' }}>
         <button className="btn btn-sm btn-ghost" style={{ width: 'fit-content' }} onClick={() => { setOpen(null); reload(); }}>← All designs</button>
-        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving}
+        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving} guardDoc={guardDoc}
           actions={canva?.connected ? ({ doc, name }) => <SendToCanvaButton doc={doc} name={name} toast={toast} /> : undefined} />
       </div>
     );
@@ -389,8 +450,16 @@ export default function Lab() {
   if (error) return <ErrorBox error={error} />;
   if (loading || !data) return <Loading />;
   if (!data.unlocked) return <Locked s={data} />;
-  const brandReady = Boolean(data.brand?.name && data.brand?.description);
+  const partnerMode = data.mode === 'partner';
+  const p = data.partner;
+  // In Partner mode every tool works on the partner, not on the learner's own brand
+  const active = partnerMode ? { name: p.name, description: p.description, hashtags: p.hashtags, website: p.referralLink || p.website } : data.brand;
+  const brandReady = Boolean(active?.name && active?.description);
   const current = tab ?? (brandReady ? 'creator' : 'brand');
+  const guards = partnerMode
+    ? { doc: (d) => checkRelevance(docText(d), p), scenes: (sc) => checkRelevance(scenesText(sc), p), request: (t) => checkRequest(t, p) }
+    : {};
+  const sForTools = { ...data, brand: active };
 
   async function postToShowcase(file, title) {
     try {
@@ -411,8 +480,9 @@ export default function Lab() {
       <header className="lab-head">
         <div>
           <h1 style={{ margin: 0 }}>🧪 My Marketing Lab</h1>
-          <p className="muted" style={{ margin: 0 }}>{brandReady ? <>Marketing <b>{data.brand.name}</b> with every tool in one place.</> : 'Set up your brand, then create posts, designs and videos for it.'}</p>
+          <p className="muted" style={{ margin: 0 }}>{partnerMode ? <>Creating for the <b>{p.displayName}</b>: everything here promotes our partner.</> : brandReady ? <>Marketing <b>{data.brand.name}</b> with every tool in one place.</> : 'Set up your brand, then create posts, designs and videos for it.'}</p>
         </div>
+        {partnerMode && <span className="chip chip-brand">🛡️ Partner mode · Partner Guard on</span>}
         {user?.role === 'kid' && <span className="chip">👨‍👩‍👧 A parent approves anything posted publicly</span>}
       </header>
       <div className="tabs lab-tabs" role="tablist">
@@ -420,13 +490,14 @@ export default function Lab() {
           <button key={k} role="tab" className="tab" aria-selected={current === k} onClick={() => setTab(k)}><span aria-hidden>{icon}</span> {label}</button>
         ))}
       </div>
-      {current === 'brand' && <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('creator'); }} />}
-      {current === 'tools' && <Toolkit s={data} brandReady={brandReady} onHandoff={(h) => { setHandoff(h); setTab(h.kind === 'video' ? 'video' : 'design'); }} />}
-      {current === 'creator' && <Creator brand={data.brand?.name} canvaConnected={canva.data?.connected}
+      {current === 'brand' && (partnerMode ? <PartnerCard partner={p} missionId={data.missionId} /> : <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('creator'); }} />)}
+      {current === 'team' && <AgentsPanel />}
+      {current === 'tools' && <Toolkit s={sForTools} brandReady={brandReady} onHandoff={(h) => { setHandoff(h); setTab(h.kind === 'video' ? 'video' : 'design'); }} />}
+      {current === 'creator' && <Creator brand={active?.name} canvaConnected={canva.data?.connected} guardRequest={guards.request} partnerLabel={partnerMode ? p.displayName : null}
         onEdit={(doc, name) => { setHandoff({ kind: 'doc', doc, name }); setTab('design'); }}
         onVideo={(scenes) => { setHandoff({ kind: 'video', scenes }); setTab('video'); }} />}
-      {current === 'design' && <DesignStudio brand={data.brand} handoff={handoff?.kind === 'design' || handoff?.kind === 'doc' ? handoff : null} clearHandoff={() => setHandoff(null)} canva={canva.data} reloadCanva={canva.reload} />}
-      {current === 'video' && <VideoMaker key={handoff?.kind === 'video' ? handoff.scenes[0]?.id : 'default'} brand={data.brand?.name} initialScenes={handoff?.kind === 'video' ? handoff.scenes : undefined} onPostToShowcase={postToShowcase} />}
+      {current === 'design' && <DesignStudio brand={active} guardDoc={guards.doc} handoff={handoff?.kind === 'design' || handoff?.kind === 'doc' ? handoff : null} clearHandoff={() => setHandoff(null)} canva={canva.data} reloadCanva={canva.reload} />}
+      {current === 'video' && <VideoMaker key={handoff?.kind === 'video' ? handoff.scenes[0]?.id : 'default'} brand={active?.name} guardScenes={guards.scenes} initialScenes={handoff?.kind === 'video' ? handoff.scenes : undefined} onPostToShowcase={postToShowcase} />}
       {current === 'files' && <Files s={data} />}
     </div>
   );

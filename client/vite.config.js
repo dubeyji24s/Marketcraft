@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => {
         '@auth-provider': src(preview ? 'preview/authProvider.js' : 'lib/authProvider.js'),
         // the free Starter engine is shared with the server
         '@starter': fileURLToPath(new URL('../server/src/ai/starter.js', import.meta.url)),
+        // the Partner Guard rules run instantly in the browser too (0 tokens)
+        '@guard': fileURLToPath(new URL('../server/src/agents/guard.js', import.meta.url)),
       },
     },
     build: preview ? { chunkSizeWarningLimit: 900, outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : { chunkSizeWarningLimit: 900 },

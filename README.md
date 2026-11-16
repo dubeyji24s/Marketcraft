@@ -77,9 +77,22 @@ The image works on any container host (Cloud Run, Render, Fly.io, Railway…). A
   - Optional **free AI picture** from the Pollinations service: no key, rate-limited and best effort. The description is sent to that service.
 - **Connect your own Canva** (`server/src/routes/canva.js`): learners can link their Canva Free or Pro account (Canva Connect API, OAuth + PKCE, encrypted tokens). **Send to Canva** uploads a design and opens it in their Canva. To switch it on, create an integration at canva.com/developers and set `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` and `CANVA_REDIRECT_URI`. Until Canva approves the integration, only accounts on the owner's Canva team can connect.
 
+## AI team: Director + agents (fewer tokens, more work)
+
+All AI work goes through the **Director** (`server/src/agents/director.js`):
+
+| Agent | Job | Token cost |
+|---|---|---|
+| 🧭 Director | Routes jobs, re-uses identical answers (24 h cache), enforces a daily token budget per learner, falls back to the free engine | 0 |
+| 🛡️ Partner Guard (`agents/guard.js`) | In Partner mode, checks requests, designs, videos, results and Canva sends for the partner's name, website, hashtags or topic words | 0 (rules). Only unclear cases go to a small model (`AI_GUARD_MODEL`, default `claude-haiku-5-5`), and only when AI is on |
+| ✍️ Copywriter | The six marketing tools (Starter engine, or Claude when configured) | 0 in Starter mode |
+| 🎨 Designer / 🎬 Video Producer | Creator designs, video scenes and music, in the browser | 0 |
+
+The Guard's rules are shared with the browser, so checks are instant and also enforced on the server. Settings: `AI_DAILY_TOKEN_BUDGET` (default 60,000 per learner per day) and `AI_GUARD_MODEL`. Learners see their team's work in **My Lab → AI team**.
+
 ## My Marketing Lab
 
-Unlocked by the **Ambassador certificate** (passing the Ambassador Mission). Graduates market their **own** product or service in one place:
+Opens in **Partner mode** as soon as a learner joins the Ambassador Program: every tool works, but everything made must promote the partner (the Partner Guard checks it). The **Ambassador certificate** unlocks **Own mode**, where graduates market their **own** product or service:
 
 - **My brand**: their own facts. The AI never invents prices, results or reviews.
 - **AI Toolkit**: all six tools on one screen, run in "own brand" mode with no ambassador disclosure needed. Each result can be copied or downloaded.

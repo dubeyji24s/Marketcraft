@@ -7,7 +7,8 @@ import { db } from '../db.js';
 import { config } from '../config.js';
 import { requireAuth, requireAdmin, publicUser } from '../auth.js';
 import { getBrief, saveBrief, referralLink, BRIEF_FIELDS, personalizeChallenge } from '../company.js';
-import { toolCatalog, getTool, inputSchema, runTool } from '../ai/ambassadorTools.js';
+import { toolCatalog, getTool, inputSchema } from '../ai/ambassadorTools.js';
+import { runCopy, guard } from '../agents/director.js';
 import { reward } from '../progress.js';
 
 const router = Router();
@@ -111,8 +112,11 @@ router.post('/tools/:id', requireAmbassador, toolLimiter, async (req, res, next)
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
   try {
     const brief = getBrief();
-    const output = await runTool({ tool, inputs: parsed.data, brief, user: req.user, referralLink: referralLink(brief, req.user.ambassador?.code) });
-    const run = await db.insert('toolRuns', { userId: req.user.id, toolId: tool.id, inputs: parsed.data, output, engine: config.aiEnabled ? 'ai' : 'starter' });
+    if (!brief.description) return res.status(409).json({ error: 'The company brief has not been filled in yet. Ask an admin to complete it.' });
+    const check = await guard({ kind: 'request', texts: Object.values(parsed.data), brief, user: req.user });
+    if (!check.ok) return res.status(422).json({ error: check.message, guard: check });
+    const { output, engine, cached, tokens } = await runCopy({ tool, inputs: parsed.data, brief, user: req.user, referralLink: referralLink(brief, req.user.ambassador?.code), mode: 'ambassador' });
+    const run = await db.insert('toolRuns', { userId: req.user.id, toolId: tool.id, inputs: parsed.data, output, engine, cached, tokens });
     // keep each user's 30 most recent drafts
     const mine = db.all('toolRuns', (r) => r.userId === req.user.id && r.scope !== 'lab').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     for (const old of mine.slice(30)) await db.remove('toolRuns', old.id);

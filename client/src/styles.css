@@ -568,3 +568,6 @@ input:focus, select:focus, textarea:focus { border-color: transparent; box-shado
 ::-webkit-scrollbar-thumb { background: var(--gradient); border-radius: 999px; border: 2px solid var(--bg); }
 
 @media (prefers-reduced-motion: reduce) { .progress > span { animation: none; } }
+
+.agent-card { display: grid; align-content: start; gap: 4px; }
+.agent-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; background: var(--gradient); box-shadow: var(--glow), inset 0 1px 0 rgb(255 255 255 / 0.4); }

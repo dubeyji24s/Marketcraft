@@ -17,13 +17,14 @@ const EXAMPLES = [
 
 const OCCASION_LABEL = { sale: 'Sale / offer', giveaway: 'Giveaway', event: 'Event', launch: 'Launch / news', hiring: 'Hiring', thanks: 'Thank-you', tip: 'Tip', general: 'General promo' };
 
-export default function Creator({ brand, onEdit, onVideo, canvaConnected }) {
+export default function Creator({ brand, onEdit, onVideo, canvaConnected, guardRequest, partnerLabel }) {
   const [prompt, setPrompt] = useState('');
   const [format, setFormat] = useState('auto');
   const [picture, setPicture] = useState(false);
   const [out, setOut] = useState(null);
   const [busy, setBusy] = useState(false);
   const [picError, setPicError] = useState(null);
+  const [blocked, setBlocked] = useState(null);
   const toast = useUI((s) => s.toast);
 
   const isVideo = format === 'video' || (format === 'auto' && understand(prompt).format === 'video');
@@ -31,6 +32,13 @@ export default function Creator({ brand, onEdit, onVideo, canvaConnected }) {
   async function create(e) {
     e?.preventDefault();
     if (prompt.trim().length < 6) return;
+    const verdict = guardRequest?.(prompt);
+    if (verdict && !verdict.ok) {
+      setPicError(null);
+      setBlocked(verdict.message);
+      return;
+    }
+    setBlocked(null);
     setBusy(true);
     setPicError(null);
     try {
@@ -87,6 +95,8 @@ export default function Creator({ brand, onEdit, onVideo, canvaConnected }) {
           )}
           <button className="btn btn-primary" disabled={busy || prompt.trim().length < 6}>{busy ? <><span className="spinner" /> Creating…</> : isVideo ? '🎬 Create video' : '✨ Create designs'}</button>
         </div>
+        {blocked && <div className="alert alert-error small" role="alert" style={{ marginTop: 10 }}>🛡️ {blocked}</div>}
+        {partnerLabel && <p className="hint">Partner mode: Creator puts <b>{brand}</b> into every design for you.</p>}
         {picture && !isVideo && <p className="hint">AI pictures come from the free Pollinations service. Your description is sent to it, so don't include personal details.</p>}
       </form>
 

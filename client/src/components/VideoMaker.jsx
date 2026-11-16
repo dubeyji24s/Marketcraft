@@ -168,7 +168,7 @@ function drawScene(ctx, W, H, scene, t, media) {
   ctx.globalAlpha = 1;
 }
 
-export default function VideoMaker({ brand, onPostToShowcase, initialScenes }) {
+export default function VideoMaker({ brand, onPostToShowcase, initialScenes, guardScenes }) {
   const [format, setFormat] = useState('vertical');
   const [scenes, setScenes] = useState(() => initialScenes?.length ? initialScenes : [
     newScene({ text: brand ? `Meet ${brand}` : 'Meet our brand', subtext: 'Made with care', bg: { kind: 'animated', style: 'aurora' } }),
@@ -273,6 +273,11 @@ export default function VideoMaker({ brand, onPostToShowcase, initialScenes }) {
 
   async function record() {
     setError(null);
+    const verdict = guardScenes?.(scenes);
+    if (verdict && !verdict.ok) {
+      setError(`🛡️ ${verdict.message}`);
+      return;
+    }
     if (!window.MediaRecorder || !canvasRef.current.captureStream) {
       setError('Your browser cannot record video. Try the latest Chrome, Edge or Firefox.');
       return;

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { renderDoc } from './DesignEditor.jsx';
+import { docText } from '@guard';
 
 export function useCanva() {
   return useApi('/canva/status');
@@ -12,7 +13,7 @@ export function useCanva() {
 export async function sendToCanva(doc, name) {
   const canvas = await renderDoc(doc);
   const png = canvas.toDataURL('image/png');
-  const { editUrl } = await api.post('/canva/send-design', { name: name.slice(0, 80), png, width: doc.width, height: doc.height });
+  const { editUrl } = await api.post('/canva/send-design', { name: name.slice(0, 80), png, width: doc.width, height: doc.height, texts: docText(doc) });
   return editUrl;
 }
 
