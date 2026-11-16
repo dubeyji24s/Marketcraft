@@ -18,7 +18,7 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || 'dev-only-insecure-secret-change-me',
   dataFile: process.env.DATA_FILE || path.join(root, 'data', 'db.json'),
   uploadDir: process.env.UPLOAD_DIR || path.join(root, 'uploads'),
-  clientDist: path.resolve(root, '..', 'client', 'dist'),
+  clientDist: process.env.CLIENT_DIST || path.resolve(root, '..', 'client', 'dist'),
 
   // AI
   aiEnabled: Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN),

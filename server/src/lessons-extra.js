@@ -66,7 +66,7 @@ export const EXTRA_LESSONS = [
       },
       {
         heading: 'What to say',
-        body: 'Use simple words anyone understands: "#ad", "Sponsored", "I\'m a brand ambassador for NexaEdits", or "Thanks to the company for the free sample". Vague tags like "#sp" or "#collab" are not enough.',
+        body: 'Use simple words anyone understands: "#ad", "Sponsored", "I\'m a brand ambassador for this brand", or "Thanks to the company for the free sample". Vague tags like "#sp" or "#collab" are not enough.',
         sourceRefs: [0],
       },
       {

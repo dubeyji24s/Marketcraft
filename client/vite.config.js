@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
         '@auth-provider': src(preview ? 'preview/authProvider.js' : 'lib/authProvider.js'),
       },
     },
-    build: preview ? { outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : {},
+    build: preview ? { chunkSizeWarningLimit: 900, outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : { chunkSizeWarningLimit: 900 },
     server: {
       port: 5173,
       proxy: { '/api': 'http://localhost:4000' },

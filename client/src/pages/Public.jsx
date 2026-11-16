@@ -50,14 +50,15 @@ export function Landing() {
     { icon: '🎬', title: 'Hands-on studio', text: 'Plan and film a real pitch video for social, ads or outdoor campaigns.' },
     { icon: '🤖', title: 'AI coach feedback', text: 'Get scored on clarity, audience, value and visuals — retry as many times as you like.' },
     { icon: '🏅', title: 'Verifiable certificates', text: 'Reach the professional 85% standard and download a certificate with your earned badge.' },
-    { icon: '🤝', title: 'Ambassador program', text: 'Graduates (18+) promote NexaEdits using six AI marketing tools, and get certified for it.' },
+    { icon: '🤝', title: 'Ambassador program', text: 'Graduates (18+) promote a real partner website with six AI marketing tools, then unlock their own Marketing Lab.' },
   ];
   const steps = [
     ['Learn', 'Bite-sized lessons on marketing that costs little or nothing.'],
     ['Watch', 'Interviews with owners who grew on a shoestring.'],
     ['Practice', 'Film a pitch for a real product challenge.'],
     ['Get certified', 'Reach the professional standard (85%+) with the AI coach. Retry until you do.'],
-    ['Become an ambassador', 'Graduates 18+ market NexaEdits with pro AI tools and earn an Ambassador certificate.'],
+    ['Become an ambassador', 'Graduates 18+ market a partner website with pro AI tools and earn an Ambassador certificate.'],
+    ['Open your Marketing Lab', 'Certified ambassadors market their OWN product with all six AI tools, a design studio and a video maker in one place.'],
   ];
   return (
     <div className="page-shell">
@@ -489,7 +490,7 @@ const LEGAL = {
       ['AI processing', 'To give feedback, your written strategy, optional script and a few still frames from your uploaded video are sent to our AI provider (Anthropic) for evaluation. They are not used to publish anything.'],
       ['Who can see your videos', 'Only you and Marketcraft administrators. Videos are never made public.'],
       ['Children', 'Anyone under 18 may only use Marketcraft through a parent\'s or guardian\'s own account; we store only the child\'s first name for certificates. A parent or guardian can ask us to view or delete their child\'s data at any time.'],
-      ['Ambassador Program', 'If you join the Ambassador Program, we store your referral code and the drafts you create with the AI marketing tools (your 30 most recent). The program is for account holders 18+ (kids only through a parent\'s account). Your Marketcraft login also works as a normal user account on our partner company NexaEdits\' website, which has its own privacy policy.'],
+      ['Ambassador Program', 'If you join the Ambassador Program, we store your referral code and the drafts you create with the AI marketing tools (your 30 most recent). The program is for account holders 18+ (kids only through a parent\'s account). Your Marketcraft login also works as a normal user account on our partner website, which has its own privacy policy.'],
       ['Your choices', 'You can ask for a copy of your data or for your account to be deleted by contacting the site administrator.'],
     ],
   },

@@ -1,3 +1,4 @@
+/* global __PREVIEW__ */
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useApi } from '../lib/useApi.js';
@@ -5,6 +6,7 @@ import { api } from '../lib/api.js';
 import { ErrorBox, Loading } from '../components/common.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
+import { downloadText, outputToText, safeName } from '../lib/download.js';
 
 const HOW_IT_WORKS = [
   ['🎓', 'Get certified', 'Pass any Studio challenge at the professional standard (ambassadors are 18+; kids join through a parent\'s account).'],
@@ -205,6 +207,16 @@ function Member({ s }) {
         </div>
       </section>
 
+      <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#9b6bff,#3dd6ff)' }}>
+        <div className="row spread">
+          <div style={{ flex: '1 1 300px' }}>
+            <h2 style={{ marginBottom: 6 }}>🧪 Next: your own Marketing Lab</h2>
+            <p className="muted small" style={{ margin: 0 }}>Earn your Ambassador certificate to unlock a Lab where you market <b>your own</b> product or service with all six AI tools, a Canva-style Design Studio and a Video Maker with free music.</p>
+          </div>
+          <Link className="btn" to="/app/lab">{s.mission?.certificateId ? 'Open my Lab' : 'See what\'s inside'}</Link>
+        </div>
+      </div>
+
       <details className="card">
         <summary style={{ cursor: 'pointer', fontWeight: 700 }}>📜 Ambassador guidelines</summary>
         <ol className="checklist" style={{ marginTop: 10 }}>{s.guidelines.map((g, i) => <li key={i}><span aria-hidden>•</span>{g}</li>)}</ol>
@@ -356,6 +368,7 @@ export function ToolPage() {
                 <h2 style={{ margin: 0 }}>Result</h2>
                 <span className="row">
                   <button className="btn btn-sm" onClick={() => copy(toText(result), toast)}>Copy all</button>
+                  {!__PREVIEW__ && <button className="btn btn-sm btn-primary" onClick={() => downloadText(outputToText(result), `${safeName(tool.name)}.txt`)}>⬇️ Download</button>}
                   <Link className="btn btn-sm btn-ghost" to="/app/ambassador/drafts">Saved to drafts ✓</Link>
                 </span>
               </div>
@@ -404,6 +417,7 @@ export function Drafts() {
             <span className="row small muted">
               {new Date(r.createdAt).toLocaleString()}
               <button className="btn btn-sm" onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide' : 'Open'}</button>
+              {!__PREVIEW__ && <button className="btn btn-sm" onClick={() => downloadText(outputToText(r.output), `${safeName(names[r.toolId]?.name)}.txt`)}>⬇️ .txt</button>}
               <button className="btn btn-sm btn-danger" onClick={() => remove(r.id)}>Delete</button>
             </span>
           </div>

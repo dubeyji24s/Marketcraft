@@ -146,7 +146,8 @@ function LessonModeration() {
 }
 
 const BRIEF_FIELDS = [
-  ['name', 'Company name', 'text', 'e.g. Alpha Trend'],
+  ['displayName', 'Public label (what learners see)', 'text', 'Partner Website'],
+  ['name', 'Real company name (private: only the AI uses it)', 'text', 'Used inside AI-written posts'],
   ['website', 'Website URL', 'url', 'https://… (ambassadors log in here with the same account)'],
   ['tagline', 'Tagline', 'text', 'One line that sums up the company'],
   ['description', 'What the company does', 'textarea', 'Plain-language description'],
@@ -205,7 +206,7 @@ function CompanyBrief() {
           </div>
         ))}
       </div>
-      <button className="btn btn-primary" disabled={busy || !f.name}>{busy ? <span className="spinner" /> : 'Save brief'}</button>
+      <button className="btn btn-primary" disabled={busy || !f.description}>{busy ? <span className="spinner" /> : 'Save brief'}</button>
     </form>
   );
 }

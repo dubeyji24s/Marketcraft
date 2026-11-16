@@ -70,6 +70,18 @@ docker run -p 4000:4000 --env-file server/.env -v mc-data:/app/server/data -v mc
 
 The image works on any container host (Cloud Run, Render, Fly.io, Railway…). Add the site's domain to Firebase's **Authorized domains** and set `CLIENT_ORIGIN` to the public URL.
 
+## My Marketing Lab
+
+Unlocked by the **Ambassador certificate** (passing the Ambassador Mission). Graduates market their **own** product or service in one place:
+
+- **My brand**: their own facts. The AI never invents prices, results or reviews.
+- **AI Toolkit**: all six tools on one screen, run in "own brand" mode with no ambassador disclosure needed. Each result can be copied or downloaded.
+- **Design Studio** (`components/DesignEditor.jsx`): a Canva-style editor with size presets (post, story, flyer, poster, thumbnail), templates, text, shapes, photos, gradients, layers and undo. Exports PNG or JPG. Designs are saved per user.
+- **Video Maker** (`components/VideoMaker.jsx`): scenes with animated backgrounds or the learner's own photos and clips, plus animated text. **Music is generated in the browser** (`lib/beats.js`), so every track is original and copyright-free. Exports MP4 or WebM, depending on the browser, and can send a video to the Showcase.
+- **My files**: download every draft (single files or all at once) and every design.
+
+The partner company is shown to learners only by its public label (Admin → Company brief → *Public label*, default "Partner Website"). The real name stays in the admin-only brief.
+
 ## Showcase
 
 Learners post their own marketing videos (upload or link) in **Showcase**. Videos are private by default, which makes them a portfolio. Choosing "Community" sends a video to **Admin → Showcase review**, and others see it only once an admin approves it. Learners can cheer 👏 each other's videos.

@@ -162,7 +162,7 @@ router.post('/submissions', submitLimiter, upload.single('video'), async (req, r
   }
   const brief = getBrief();
   const challenge = { ...personalizeChallenge(stored, brief), ...(stored.kind === 'ambassador' ? { companyBrief: briefToText(brief) } : {}) };
-  if (challenge.kind === 'ambassador' && !(brief.name && brief.description)) {
+  if (challenge.kind === 'ambassador' && !brief.description) {
     cleanup();
     return res.status(409).json({ error: 'The company brief has not been filled in yet. Ask an admin to complete it.' });
   }

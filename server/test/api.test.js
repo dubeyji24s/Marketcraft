@@ -166,7 +166,7 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   assert.ok(!(await other('GET', '/studio/challenges')).body.challenges.some((c) => c.kind === 'ambassador'), 'mission hidden');
 
   // certified → can join, gets referral code
-  assert.equal((await api('GET', '/ambassador/status')).body.company.name, 'NexaEdits', 'default partner company');
+  assert.equal((await api('GET', '/ambassador/status')).body.company.name, 'Partner Website', 'learners see the public label');
   const st = await api('GET', '/ambassador/status');
   assert.equal(st.body.eligible, true);
   assert.equal(st.body.tools.length, 6);
@@ -197,11 +197,13 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   const admin = client();
   await admin('POST', '/auth/session', { idToken: token({ uid: 'adm', email: 'teacher@school.edu' }), profile: { name: 'Teacher', role: 'professional', adultConfirmed: true } });
   assert.equal((await api('PUT', '/ambassador/brief', { name: 'x' })).status, 403);
-  const brief = { name: 'NexaEdits', website: 'https://nexaedits.example', tagline: '', description: 'Trend insights', products: '', audience: '', keyMessages: '', offers: '', voice: '', dos: '', donts: '', hashtags: '#AlphaTrend' };
+  const brief = { displayName: 'Partner Website', name: 'SecretCo', website: 'https://partner.example', tagline: '', description: 'Trend insights', products: '', audience: '', keyMessages: '', offers: '', voice: '', dos: '', donts: '', hashtags: '#AlphaTrend' };
   assert.equal((await admin('PUT', '/ambassador/brief', brief)).status, 200);
   const st2 = (await api('GET', '/ambassador/status')).body;
-  assert.match(st2.referralLink, /^https:\/\/nexaedits\.example\/\?ref=[A-Z2-9]{8}&utm_source=marketcraft/);
-  assert.equal(st2.mission.title, 'Ambassador Mission: Grow NexaEdits');
+  assert.equal(st2.company.name, 'Partner Website', 'real name stays private');
+  assert.ok(!JSON.stringify(st2).includes('SecretCo'));
+  assert.match(st2.referralLink, /^https:\/\/partner\.example\/\?ref=[A-Z2-9]{8}&utm_source=marketcraft/);
+  assert.equal(st2.mission.title, 'Ambassador Mission: Grow the Partner Website');
 
   const pass = await api('POST', '/studio/submissions', m, true);
   assert.equal(pass.status, 201, JSON.stringify(pass.body));
@@ -209,9 +211,31 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   assert.equal(ev.criteria.length, 5, 'ambassador rubric has brand criterion');
   assert.equal(ev.max, 100);
   assert.ok(ev.passed, `mission score ${ev.percent}`);
-  assert.equal(pass.body.certificate.badge, 'Certified NexaEdits Brand Ambassador');
+  assert.equal(pass.body.certificate.badge, 'Certified Brand Ambassador');
   assert.equal(pass.body.certificate.kind, 'ambassador');
   assert.ok((await admin('GET', '/ambassador/roster')).body.ambassadors.some((a) => a.name === 'Ada Owner' && a.missionCertified));
+
+  // ---- Marketing Lab: locked for others, unlocked by the Ambassador certificate ----
+  assert.equal((await other('GET', '/lab/status')).body.unlocked, false);
+  assert.equal((await other('PUT', '/lab/brand', { name: 'x' })).status, 403);
+  const lab = await api('GET', '/lab/status');
+  assert.equal(lab.body.unlocked, true);
+  assert.equal(lab.body.tools.length, 6);
+  assert.equal((await api('POST', '/lab/tools/social-post', { inputs: { platform: 'Instagram', topic: 'my scarves', goal: 'Build awareness' } })).status, 409, 'brand first');
+  const emptyBrand = Object.fromEntries(['name', 'website', 'tagline', 'description', 'products', 'audience', 'keyMessages', 'offers', 'voice', 'dos', 'donts', 'hashtags'].map((k) => [k, '']));
+  assert.equal((await api('PUT', '/lab/brand', { ...emptyBrand, website: 'not a link' })).status, 400);
+  const saved = await api('PUT', '/lab/brand', { ...emptyBrand, name: "Ada's Sourdough", description: 'Small-batch bread', website: 'https://ada.example' });
+  assert.equal(saved.status, 200);
+  assert.ok(saved.body.newBadges.some((b) => b.key === 'lab'));
+  assert.equal((await api('POST', '/lab/tools/social-post', { inputs: { platform: 'Instagram', topic: 'my bread', goal: 'Build awareness' } })).status, 503, 'AI off in tests');
+  const doc = { width: 1080, height: 1080, preset: 'instagram-post', background: { type: 'solid', color: '#fff' }, elements: [{ id: 'a', type: 'text', text: 'Hi' }] };
+  const d = await api('POST', '/lab/designs', { name: 'Promo', doc });
+  assert.equal(d.status, 201);
+  assert.equal(d.body.design.preset, 'instagram-post');
+  assert.equal((await other('GET', `/lab/designs/${d.body.design.id}`)).status, 403);
+  assert.equal((await api('PUT', `/lab/designs/${d.body.design.id}`, { name: 'Promo v2', doc })).body.design.name, 'Promo v2');
+  assert.equal((await api('GET', '/lab/designs')).body.designs.length, 1);
+  assert.equal((await api('DELETE', `/lab/designs/${d.body.design.id}`)).status, 200);
 });
 
 test('showcase: private by default, community posts need admin approval', async () => {

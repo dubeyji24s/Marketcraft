@@ -2,15 +2,18 @@
 import { db } from './db.js';
 import { config } from './config.js';
 
-export const BRIEF_FIELDS = ['name', 'website', 'tagline', 'description', 'products', 'audience', 'keyMessages', 'offers', 'voice', 'dos', 'donts', 'hashtags'];
+export const BRIEF_FIELDS = ['displayName', 'name', 'website', 'tagline', 'description', 'products', 'audience', 'keyMessages', 'offers', 'voice', 'dos', 'donts', 'hashtags'];
 
-// Partner company: NexaEdits. Admins complete the rest of the brief in Admin → Company brief.
-const DEFAULT_BRIEF = { ...Object.fromEntries(BRIEF_FIELDS.map((k) => [k, ''])), name: process.env.COMPANY_NAME || 'NexaEdits' };
+// The partner company is shown to learners only by its public label (default "Partner Website").
+// Its real name and facts stay in the admin-only brief and are given to the AI tools as facts.
+export const DEFAULT_DISPLAY_NAME = 'Partner Website';
+const DEFAULT_BRIEF = { ...Object.fromEntries(BRIEF_FIELDS.map((k) => [k, ''])), displayName: DEFAULT_DISPLAY_NAME, name: process.env.COMPANY_NAME || '' };
 
 export function getBrief() {
   const doc = db.find('settings', (s) => s.key === 'companyBrief');
   const brief = { ...DEFAULT_BRIEF, ...(doc?.value ?? {}) };
   if (!brief.website) brief.website = config.companyUrl;
+  if (!brief.displayName) brief.displayName = DEFAULT_DISPLAY_NAME;
   return brief;
 }
 
@@ -38,7 +41,7 @@ export function referralLink(brief, code) {
 /** Fill {company} placeholders in ambassador challenges. */
 export function personalizeChallenge(c, brief = getBrief()) {
   if (c.kind !== 'ambassador') return c;
-  const name = brief.name || 'our partner company';
+  const name = brief.displayName || DEFAULT_DISPLAY_NAME;
   const fill = (s) => (typeof s === 'string' ? s.replaceAll('{company}', name) : s);
   return { ...c, title: fill(c.title), product: fill(c.product), brief: fill(c.brief), certificateBadge: fill(c.certificateBadge) };
 }

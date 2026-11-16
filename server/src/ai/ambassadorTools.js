@@ -252,7 +252,7 @@ export function getTool(id) {
 export function briefToText(b) {
   const line = (label, v) => (v ? `${label}: ${v}` : null);
   return [
-    line('Company', b.name),
+    line('Company', b.name || b.displayName),
     line('Website', b.website),
     line('Tagline', b.tagline),
     line('What it does', b.description),
@@ -269,7 +269,8 @@ export function briefToText(b) {
     .join('\n');
 }
 
-function systemPrompt(brief, user) {
+function systemPrompt(brief, user, mode = 'ambassador') {
+  if (mode === 'own') return ownSystemPrompt(brief, user);
   const kid = user.role === 'kid';
   return `You are the Marketcraft Ambassador Assistant. You help trained brand ambassadors market the company below honestly and professionally, using low-cost, direct-to-consumer tactics.
 
@@ -292,6 +293,25 @@ ${
 - Write in clear, natural language the ambassador can say in their own voice.`;
 }
 
+/** Marketing Lab: the learner markets their OWN product or service. */
+function ownSystemPrompt(brand, user) {
+  const kid = user.role === 'kid';
+  return `You are the Marketcraft Marketing Lab assistant. You help a certified Marketcraft graduate market their OWN product or service honestly and professionally, using low-cost, direct-to-consumer tactics.
+
+<my_brand>
+${briefToText(brand)}
+</my_brand>
+
+Rules (always follow):
+- Use ONLY facts from <my_brand>. Never invent prices, discounts, statistics, awards, guarantees, testimonials or features. If something useful is missing, write "[add this]" instead of guessing.
+- This is the owner's own business, so no ambassador disclosure is needed. If content features a paid partner, influencer or gifted product, include an honest disclosure for that.
+- No spam or manipulation: no buying followers or likes, no fake reviews, no mass DMs to strangers, no fake urgency.
+- Respect privacy: never suggest collecting other people's personal data.
+- When a link is needed, use the placeholder {{REFERRAL_LINK}}; the app replaces it with the brand's website.
+${kid ? "- This is a kid's business on a parent-supervised account. Keep everything age-appropriate and remind them a parent or guardian approves and posts anything public. Never suggest sharing their full name, school or location." : ''}
+- Write in clear, natural language the owner can say in their own voice.`;
+}
+
 /** Fill {{REFERRAL_LINK}} in every string of the output. */
 function fillLinks(value, link) {
   if (typeof value === 'string') return value.replaceAll('{{REFERRAL_LINK}}', link || '[your link]');
@@ -300,16 +320,16 @@ function fillLinks(value, link) {
   return value;
 }
 
-export async function runTool({ tool, inputs, brief, user, referralLink }) {
+export async function runTool({ tool, inputs, brief, user, referralLink, mode = 'ambassador' }) {
   const client = getClient();
   if (!client) throw new AIError('The AI tools are not switched on yet: the server needs an ANTHROPIC_API_KEY.', 503);
-  if (!brief?.name || !brief.description) throw new AIError('The company brief has not been filled in yet. Ask an admin to complete it.', 409);
+  if (!brief?.description) throw new AIError('The company brief has not been filled in yet. Ask an admin to complete it.', 409);
   try {
     const res = await client.beta.messages.parse(
       baseParams({
         max_tokens: 16000,
         output_config: { effort: 'low', format: betaZodOutputFormat(tool.output) },
-        system: systemPrompt(brief, user),
+        system: systemPrompt(brief, user, mode),
         messages: [{ role: 'user', content: tool.task(inputs) }],
       }),
     );

@@ -10,6 +10,7 @@ export const BADGES = {
   distinction: { label: 'Gold Pitch', emoji: '🏆', description: 'Scored distinction (95%+)' },
   ambassador: { label: 'Brand Ambassador', emoji: '🤝', description: 'Joined the Ambassador Program' },
   'brand-certified': { label: 'Certified Ambassador', emoji: '🌟', description: 'Passed the Ambassador Mission' },
+  lab: { label: 'Founder Mode', emoji: '🧪', description: 'Set up your own brand in the Marketing Lab' },
   showcase: { label: 'On Stage', emoji: '🎥', description: 'Shared a marketing video in the Showcase' },
 };
 
@@ -250,19 +251,23 @@ export const INTERVIEWS = [
 export const AMBASSADOR_MISSION = {
   slug: 'ambassador-mission',
   kind: 'ambassador',
-  title: 'Ambassador Mission: Grow {company}',
+  title: 'Ambassador Mission: Grow the {company}',
   product: '{company}',
   brief: 'Create a real, professional marketing campaign for {company}. Use the AI tools to pick a persona, plan your content and write a script, then film a 30-90 second video that could be posted today. Explain who you target, why they should care, where you will post, how you stay honest (disclosure!), and how you will measure results with your referral link.',
   channel: 'social',
   budget: '$0 – your own time and phone',
   difficulty: 'advanced',
   audiences: ['kid', 'adult', 'professional'],
-  certificateBadge: 'Certified {company} Brand Ambassador',
+  certificateBadge: 'Certified Brand Ambassador',
   color: '#00C2A8',
 };
 
 export async function seed() {
-  if (!db.find('challenges', (c) => c.kind === 'ambassador')) await db.insert('challenges', AMBASSADOR_MISSION);
+  const mission = db.find('challenges', (c) => c.kind === 'ambassador');
+  if (!mission) await db.insert('challenges', AMBASSADOR_MISSION);
+  else if (mission.title !== AMBASSADOR_MISSION.title || mission.certificateBadge !== AMBASSADOR_MISSION.certificateBadge) {
+    await db.update('challenges', mission.id, { title: AMBASSADOR_MISSION.title, certificateBadge: AMBASSADOR_MISSION.certificateBadge });
+  }
   if (db.all('challenges', (c) => c.kind !== 'ambassador').length === 0) for (const c of CHALLENGES) await db.insert('challenges', c);
   // staff lessons are added by slug, so new lessons also reach existing databases
   for (const l of [...LESSONS, ...EXTRA_LESSONS]) {

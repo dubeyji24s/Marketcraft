@@ -40,3 +40,6 @@ export const resendVerification = () => sendEmailVerification(fb().currentUser);
 export const reloadUser = () => fb().currentUser.reload();
 export const setDisplayName = (name) => (auth?.currentUser ? updateProfile(auth.currentUser, { displayName: name }) : Promise.resolve());
 export const signOutProvider = () => (auth ? signOut(auth) : Promise.resolve());
+// Demo accounts exist only in the preview build.
+export const DEMO_ACCOUNTS = [];
+export const DEMO_PASSWORD = '';

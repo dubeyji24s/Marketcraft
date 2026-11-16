@@ -43,7 +43,7 @@ function status(user) {
   const brief = getBrief();
   const mission = db.find('challenges', (c) => c.kind === 'ambassador');
   const missionCert = mission && db.find('certificates', (c) => c.userId === user.id && c.challengeId === mission.id);
-  const companyName = brief.name || 'our partner company';
+  const companyName = brief.displayName;
   return {
     eligible: isEligible(user),
     adultAccount: isAdultAccount(user),
@@ -52,7 +52,7 @@ function status(user) {
     ambassador: user.ambassador ?? null,
     referralLink: referralLink(brief, user.ambassador?.code),
     passThreshold: config.passThreshold,
-    company: { name: brief.name, website: brief.website, tagline: brief.tagline, description: brief.description, products: brief.products, hashtags: brief.hashtags, configured: Boolean(brief.name && brief.description) },
+    company: { name: brief.displayName, website: brief.website, tagline: brief.tagline, description: brief.description, products: brief.products, hashtags: brief.hashtags, configured: Boolean(brief.description) },
     guidelines: [...GUIDELINES.map((g) => g.replaceAll('{company}', companyName)), ...(user.role === 'kid' ? [KID_RULE] : [])],
     isKid: user.role === 'kid',
     mission: mission ? { id: mission.id, title: personalizeChallenge(mission, brief).title, certificateId: missionCert?.id ?? null } : null,
@@ -114,7 +114,7 @@ router.post('/tools/:id', requireAmbassador, toolLimiter, async (req, res, next)
     const output = await runTool({ tool, inputs: parsed.data, brief, user: req.user, referralLink: referralLink(brief, req.user.ambassador?.code) });
     const run = await db.insert('toolRuns', { userId: req.user.id, toolId: tool.id, inputs: parsed.data, output });
     // keep each user's 30 most recent drafts
-    const mine = db.all('toolRuns', (r) => r.userId === req.user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const mine = db.all('toolRuns', (r) => r.userId === req.user.id && r.scope !== 'lab').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     for (const old of mine.slice(30)) await db.remove('toolRuns', old.id);
     res.status(201).json({ run });
   } catch (err) {
@@ -123,7 +123,7 @@ router.post('/tools/:id', requireAmbassador, toolLimiter, async (req, res, next)
 });
 
 router.get('/runs', requireAmbassador, (req, res) => {
-  const runs = db.all('toolRuns', (r) => r.userId === req.user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const runs = db.all('toolRuns', (r) => r.userId === req.user.id && r.scope !== 'lab').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   res.json({ runs });
 });
 

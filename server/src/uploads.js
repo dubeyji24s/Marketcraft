@@ -14,11 +14,11 @@ export function videoUpload(subdir) {
     storage: multer.diskStorage({
       destination: dir,
       // never trust the client filename
-      filename: (_req, file, cb) => cb(null, `${nanoid(16)}${EXT[file.mimetype] ?? '.bin'}`),
+      filename: (_req, file, cb) => cb(null, `${nanoid(16)}${EXT[file.mimetype.split(';')[0]] ?? '.bin'}`),
     }),
     limits: { fileSize: config.maxVideoBytes, files: 1, fieldSize: 12 * 1024 * 1024 },
     fileFilter: (_req, file, cb) => {
-      if (VIDEO_TYPES.has(file.mimetype)) cb(null, true);
+      if (VIDEO_TYPES.has(file.mimetype.split(';')[0])) cb(null, true);
       else cb(Object.assign(new Error('Only MP4, WebM, MOV or OGG videos are allowed.'), { status: 400 }));
     },
   });

@@ -13,6 +13,7 @@ const NAV = [
   { to: '/app/showcase', label: 'Showcase', icon: '🎥' },
   { to: '/app/certificates', label: 'Certificates', icon: '🏅' },
   { to: '/app/ambassador', label: 'Ambassador', icon: '🤝' },
+  { to: '/app/lab', label: 'My Lab', icon: '🧪' },
 ];
 
 export function usePublicTheme() {

@@ -3,7 +3,7 @@
 // browser. AI features answer with a clear "needs the full app" message.
 import DATA from './data.json';
 
-const KEY = 'mc-preview-db-v3';
+const KEY = 'mc-preview-db-v4';
 const AI_OFF = 'AI features run in the full Marketcraft app once a Claude API key is added. This preview simulates everything else.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
@@ -20,15 +20,26 @@ function seed() {
     stamp({ uid: 'demo-adult', email: 'learner@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Ava Learner', role: 'adult', adultConfirmedAt: t, xp: 0, badges: [], completedLessons: [] }),
     stamp({ uid: 'demo-kid', email: 'parent@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Leo', role: 'kid', ageGroup: 'under13', accountHolder: 'parent', parentName: 'Sam', guardianEmail: 'parent@preview.marketcraft', xp: 0, badges: [], completedLessons: [] }),
   ];
+  const grad = stamp({ uid: 'demo-grad', email: 'graduate@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Jordan Graduate', role: 'professional', adultConfirmedAt: t, xp: 420, badges: ['first-lesson', 'first-pitch', 'certified', 'ambassador', 'brand-certified'], completedLessons: [], ambassador: { code: 'GRAD2026', joinedAt: t }, lab: { brand: { name: 'Bright Scarves Co.', website: '', tagline: 'Cozy handmade scarves for every season', description: 'Hand-knitted wool and cotton scarves made in small batches.', products: 'Wool scarf $28\nCotton summer scarf $22', audience: 'Gift shoppers and people who love handmade goods', keyMessages: 'Handmade, soft, made to last', offers: '', voice: 'Warm and friendly', dos: '', donts: '', hashtags: '#BrightScarves' } } });
+  users.push(grad);
+  const challenges = DATA.challenges.map((c) => stamp(c));
+  const missionC = challenges.find((c) => c.kind === 'ambassador');
+  const practiceC = challenges[0];
+  const certificates = [
+    { id: id(), userId: grad.id, recipientName: grad.name, challengeId: practiceC.id, challengeTitle: practiceC.title, kind: 'practice', badge: practiceC.certificateBadge, color: practiceC.color, tier: 'Certified', score: 90, issuedAt: t, verifyCode: code(10) },
+    { id: id(), userId: grad.id, recipientName: grad.name, challengeId: missionC.id, challengeTitle: 'Ambassador Mission: Grow the Partner Website', kind: 'ambassador', badge: 'Certified Brand Ambassador', color: missionC.color, tier: 'Certified', score: 88, issuedAt: t, verifyCode: code(10) },
+  ];
   return {
     session: null,
+    designs: [],
+    toolRuns: [],
+    certificates,
     users,
     lessons: DATA.lessons.map((l) => stamp({ ...l, generatedBy: 'staff', published: true, originality: { score: 100, passed: true, revisions: 0 } })),
-    challenges: DATA.challenges.map((c) => stamp(c)),
+    challenges,
     interviews: DATA.interviews.map((i) => stamp(i)),
     submissions: [],
-    certificates: [],
-    brief: { name: 'NexaEdits', website: '', tagline: '', description: '', products: '', audience: '', keyMessages: '', offers: '', voice: '', dos: '', donts: '', hashtags: '' },
+    brief: { displayName: 'Partner Website', name: '', website: '', tagline: '', description: '', products: '', audience: '', keyMessages: '', offers: '', voice: '', dos: '', donts: '', hashtags: '' },
     showcase: [
       stamp({ userId: users[1].id, title: 'Sample: 30-second bakery reel', description: 'Example community post. Hook: steam rising from fresh bread. Target: local families. CTA: visit Saturday.', channel: 'social', tags: ['bakery', 'reel'], visibility: 'community', status: 'approved', videoUrl: 'https://www.youtube.com/', cheers: [] }),
       stamp({ userId: users[2].id, title: 'Sample: lemonade stand sign', description: 'Example of a community post waiting for admin approval.', channel: 'outdoor', tags: ['kids'], visibility: 'community', status: 'pending', videoUrl: 'https://www.youtube.com/', cheers: [] }),
@@ -95,7 +106,7 @@ function reward(user, xp, badges) {
   user.badges = [...user.badges, ...fresh];
   return fresh.map((key) => ({ key, ...DATA.badges[key] }));
 }
-const companyName = () => db().brief.name || 'our partner company';
+const companyName = () => db().brief.displayName || 'Partner Website';
 function personalize(c) {
   if (c.kind !== 'ambassador') return c;
   const f = (s) => (typeof s === 'string' ? s.replaceAll('{company}', companyName()) : s);
@@ -166,7 +177,7 @@ function ambassadorStatus(u) {
   return {
     eligible: eligible(u), adultAccount: isAdultAccount(u), certified: u.role === 'admin' || hasCert(u),
     joined: Boolean(u.ambassador), ambassador: u.ambassador ?? null, referralLink, passThreshold: DATA.passThreshold,
-    company: { name: b.name, website: b.website, tagline: b.tagline, description: b.description, products: b.products, hashtags: b.hashtags, configured: Boolean(b.name && b.description) },
+    company: { name: companyName(), website: b.website, tagline: b.tagline, description: b.description, products: b.products, hashtags: b.hashtags, configured: Boolean(b.description) },
     guidelines: [...DATA.guidelines.map((g) => g.replaceAll('{company}', companyName())), ...(u.role === 'kid' ? [DATA.kidRule] : [])],
     isKid: u.role === 'kid',
     mission: mission ? { id: mission.id, title: personalize(mission).title, certificateId: cert?.id ?? null } : null,
@@ -304,7 +315,7 @@ on('POST', '/studio/submissions', (_, body) => {
   if (!hasFile && !f.videoUrl) fail(400, 'Upload your pitch video or paste a link to it.');
   const stored = db().challenges.find((x) => x.id === f.challengeId && forRole(u)(x)) ?? fail(404, 'Challenge not found.');
   const c = personalize(stored);
-  if (c.kind === 'ambassador' && !(db().brief.name && db().brief.description)) fail(409, 'The company brief has not been filled in yet. Ask an admin to complete it.');
+  if (c.kind === 'ambassador' && !db().brief.description) fail(409, 'The company brief has not been filled in yet. Ask an admin to complete it.');
   const frames = f.frames ? JSON.parse(f.frames) : [];
   const previous = db().submissions.filter((s) => s.userId === u.id && s.challengeId === c.id);
   const evaluation = evaluate(c, { explanation: f.explanation, transcript: f.transcript, frameCount: frames.length });
@@ -412,6 +423,32 @@ on('POST', '/showcase/:id/review', ({ id: sid }, body) => {
   Object.assign(it, { status: body.status, reviewNote: body.note || null });
   return { item: serializeShow(it, u) };
 });
+
+// lab
+const labUnlocked = (u) => u.role === 'admin' || db().certificates.some((c) => c.userId === u.id && c.kind === 'ambassador' && c.score >= DATA.passThreshold);
+const needLab = () => { const u = need(); if (!labUnlocked(u)) fail(403, 'Your Marketing Lab unlocks when you earn the Ambassador certificate (complete the Ambassador Mission).'); return u; };
+const BRAND_KEYS = ['name', 'website', 'tagline', 'description', 'products', 'audience', 'keyMessages', 'offers', 'voice', 'dos', 'donts', 'hashtags'];
+on('GET', '/lab/status', () => {
+  const u = need();
+  const mission = db().challenges.find((c) => c.kind === 'ambassador');
+  return { unlocked: labUnlocked(u), missionId: mission?.id ?? null, passThreshold: DATA.passThreshold, brand: { ...Object.fromEntries(BRAND_KEYS.map((k) => [k, ''])), ...(u.lab?.brand ?? {}) }, tools: DATA.tools, aiEnabled: false };
+});
+on('PUT', '/lab/brand', (_, body) => {
+  const u = needLab();
+  if (!body.name?.trim()) fail(400, 'Give your brand a name.');
+  if (body.website && !/^https?:\/\//.test(body.website)) fail(400, 'Website must be a full link, like https://…');
+  const first = !u.lab?.brand?.name;
+  u.lab = { ...(u.lab ?? {}), brand: body };
+  return { brand: body, newBadges: first ? reward(u, 30, ['lab']) : [] };
+});
+on('POST', '/lab/tools/:id', () => { needLab(); fail(503, AI_OFF); });
+on('GET', '/lab/runs', () => { needLab(); return { runs: [] }; });
+const designMeta = ({ doc, ...d }) => ({ ...d, width: doc.width, height: doc.height, preset: doc.preset ?? null });
+on('GET', '/lab/designs', () => { const u = needLab(); return { designs: db().designs.filter((d) => d.userId === u.id).map(designMeta) }; });
+on('GET', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); return { design: db().designs.find((d) => d.id === did && d.userId === u.id) ?? fail(404, 'Design not found.') }; });
+on('POST', '/lab/designs', (_, body) => { const u = needLab(); const d = { id: id(), createdAt: now(), updatedAt: now(), userId: u.id, name: body.name, doc: body.doc }; db().designs.unshift(d); return { design: designMeta(d) }; });
+on('PUT', '/lab/designs/:id', ({ id: did }, body) => { const u = needLab(); const d = db().designs.find((x) => x.id === did && x.userId === u.id) ?? fail(404, 'Design not found.'); Object.assign(d, { name: body.name, doc: body.doc, updatedAt: now() }); return { design: designMeta(d) }; });
+on('DELETE', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); db().designs = db().designs.filter((x) => !(x.id === did && x.userId === u.id)); return { ok: true }; });
 
 // ---- entry point used by lib/api.js ------------------------------------------------
 export async function send(method, url, body) {

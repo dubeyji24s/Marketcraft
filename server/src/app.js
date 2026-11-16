@@ -12,6 +12,7 @@ import interviewRoutes from './routes/interviews.js';
 import studioRoutes from './routes/studio.js';
 import ambassadorRoutes from './routes/ambassador.js';
 import showcaseRoutes from './routes/showcase.js';
+import labRoutes from './routes/lab.js';
 import { AIError } from './ai/client.js';
 
 export function createApp() {
@@ -39,7 +40,10 @@ export function createApp() {
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     }),
   );
-  app.use(express.json({ limit: '1mb' }));
+  // Designs can carry embedded images, so they get a larger body limit.
+  const jsonSmall = express.json({ limit: '1mb' });
+  const jsonLarge = express.json({ limit: '8mb' });
+  app.use((req, res, next) => (req.path.startsWith('/api/lab/designs') ? jsonLarge : jsonSmall)(req, res, next));
   app.use(cookieParser());
   app.use(loadUser);
 
@@ -60,6 +64,7 @@ export function createApp() {
   app.use('/api/studio', studioRoutes);
   app.use('/api/ambassador', ambassadorRoutes);
   app.use('/api/showcase', showcaseRoutes);
+  app.use('/api/lab', labRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
   // Serve the built React app in production

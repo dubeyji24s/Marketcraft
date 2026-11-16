@@ -8,7 +8,7 @@ fs.mkdirSync('preview', { recursive: true });
 fs.writeFileSync('preview/marketcraft-preview.html', `<title>Marketcraft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Pacifico&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
 <style>${css}</style>
 <div id="root"></div>
 <script type="module">${js}</script>

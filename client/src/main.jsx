@@ -10,6 +10,7 @@ import { Landing, Login, Signup, Onboarding, ForgotPassword, Verify, Legal, NotF
 import Settings from './pages/Settings.jsx';
 import { AmbassadorHome, ToolPage, Drafts } from './pages/Ambassador.jsx';
 import Showcase from './pages/Showcase.jsx';
+import Lab from './pages/Lab.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import { Library, LessonView } from './pages/Learn.jsx';
 import Interviews from './pages/Interviews.jsx';
@@ -64,6 +65,7 @@ function App() {
           <Route path="certificates/:id" element={<CertificateView />} />
           <Route path="settings" element={<Settings />} />
           <Route path="showcase" element={<Showcase />} />
+          <Route path="lab" element={<Lab />} />
           <Route path="ambassador" element={<AmbassadorHome />} />
           <Route path="ambassador/tools/:id" element={<ToolPage />} />
           <Route path="ambassador/drafts" element={<Drafts />} />
