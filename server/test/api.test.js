@@ -303,7 +303,8 @@ test('staff lessons include researched topics', async () => {
   await api('POST', '/auth/session', { idToken: token({ uid: 'lsn', email: 'l@x.com' }), profile: { name: 'Lee', role: 'professional', adultConfirmed: true } });
   const slugs = (await api('GET', '/lessons')).body.lessons.map((l) => l.slug);
   for (const s of ['honest-reviews', 'disclose-like-a-pro', 'track-what-works', 'one-page-marketing-plan']) assert.ok(slugs.includes(s), s);
-  assert.ok(slugs.length >= 12);
+  for (const s of ['pricing-for-profit', 'seo-basics', 'video-abcd', 'truth-in-advertising', 'accessible-marketing', 'keep-your-customers']) assert.ok(slugs.includes(s), s);
+  assert.ok(slugs.length >= 18, `only ${slugs.length} lessons visible`);
 });
 
 test('85% pass mark', async () => {

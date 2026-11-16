@@ -1,5 +1,6 @@
 import { db } from './db.js';
 import { EXTRA_LESSONS } from './lessons-extra.js';
+import { PRO_LESSONS } from './lessons-pro.js';
 
 export const BADGES = {
   'first-lesson': { label: 'Curious Mind', emoji: '📚', description: 'Completed your first lesson' },
@@ -270,7 +271,7 @@ export async function seed() {
   }
   if (db.all('challenges', (c) => c.kind !== 'ambassador').length === 0) for (const c of CHALLENGES) await db.insert('challenges', c);
   // staff lessons are added by slug, so new lessons also reach existing databases
-  for (const l of [...LESSONS, ...EXTRA_LESSONS]) {
+  for (const l of [...LESSONS, ...EXTRA_LESSONS, ...PRO_LESSONS]) {
     if (!db.find('lessons', (x) => x.slug === l.slug)) {
       await db.insert('lessons', { ...l, generatedBy: 'staff', published: true, originality: { score: 100, passed: true, revisions: 0 } });
     }

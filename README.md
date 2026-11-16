@@ -107,6 +107,10 @@ The partner company is shown to learners only by its public label (Admin → Com
 
 Learners post their own marketing videos (upload or link) in **Showcase**. Videos are private by default, which makes them a portfolio. Choosing "Community" sends a video to **Admin → Showcase review**, and others see it only once an admin approves it. Learners can cheer 👏 each other's videos.
 
+## Sources
+
+Every source behind the lessons and research, with links: [docs/SOURCES.md](docs/SOURCES.md).
+
 ## Clickable preview (artifact)
 
 `npm run build:preview` builds a self-contained demo at `preview/marketcraft-preview.html`. It uses a simulated server and sign-in (`client/src/preview/`) and keeps data in the viewer's browser, so it can be shared as a claude.ai artifact. Downloads in the artifact go through the claude.ai `downloads` permission, which asks the viewer to confirm each save. It has demo accounts for Admin, Adult learner and Kid on a parent account. AI features answer "runs in the full app".
