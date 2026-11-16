@@ -50,15 +50,15 @@ export function Landing() {
     { icon: '🎬', title: 'Hands-on studio', text: 'Plan and film a real pitch video for social, ads or outdoor campaigns.' },
     { icon: '🤖', title: 'AI coach feedback', text: 'Get scored on clarity, audience, value and visuals — retry as many times as you like.' },
     { icon: '🏅', title: 'Verifiable certificates', text: 'Reach the professional 85% standard and download a certificate with your earned badge.' },
-    { icon: '🤝', title: 'Ambassador program', text: 'Graduates (18+) promote a real partner website with six AI marketing tools, then unlock their own Marketing Lab.' },
+    { icon: '🤝', title: 'Ambassador program', text: 'Graduates (18+) get their Marketing Lab right away, with six AI tools, Creator, design and video, to market one specific partner website. Earn the Ambassador certificate to market your own brand too.' },
   ];
   const steps = [
     ['Learn', 'Bite-sized lessons on marketing that costs little or nothing.'],
     ['Watch', 'Interviews with owners who grew on a shoestring.'],
     ['Practice', 'Film a pitch for a real product challenge.'],
     ['Get certified', 'Reach the professional standard (85%+) with the AI coach. Retry until you do.'],
-    ['Become an ambassador', 'Graduates 18+ market a partner website with pro AI tools and earn an Ambassador certificate.'],
-    ['Open your Marketing Lab', 'Certified ambassadors market their OWN product with all six AI tools, a design studio and a video maker in one place.'],
+    ['Become an ambassador', 'Graduates 18+ join and their Marketing Lab opens: every tool works, but only to market our partner website.'],
+    ['Unlock your own brand', 'Earn the Ambassador certificate and the Lab opens up for your OWN product or service, with every tool in one place.'],
   ];
   return (
     <div className="page-shell">

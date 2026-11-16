@@ -571,3 +571,7 @@ input:focus, select:focus, textarea:focus { border-color: transparent; box-shado
 
 .agent-card { display: grid; align-content: start; gap: 4px; }
 .agent-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; font-size: 1.3rem; background: var(--gradient); box-shadow: var(--glow), inset 0 1px 0 rgb(255 255 255 / 0.4); }
+/* six-step "How it works": balanced 3 × 2 grid (2 columns on tablets, 1 on phones) */
+.steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
