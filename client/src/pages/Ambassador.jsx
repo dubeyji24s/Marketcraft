@@ -368,7 +368,7 @@ export function ToolPage() {
                 <h2 style={{ margin: 0 }}>Result</h2>
                 <span className="row">
                   <button className="btn btn-sm" onClick={() => copy(toText(result), toast)}>Copy all</button>
-                  {!__PREVIEW__ && <button className="btn btn-sm btn-primary" onClick={() => downloadText(outputToText(result), `${safeName(tool.name)}.txt`)}>⬇️ Download</button>}
+                  <button className="btn btn-sm btn-primary" onClick={() => downloadText(outputToText(result), `${safeName(tool.name)}.txt`)}>⬇️ Download</button>
                   <Link className="btn btn-sm btn-ghost" to="/app/ambassador/drafts">Saved to drafts ✓</Link>
                 </span>
               </div>
@@ -417,7 +417,7 @@ export function Drafts() {
             <span className="row small muted">
               {new Date(r.createdAt).toLocaleString()}
               <button className="btn btn-sm" onClick={() => setOpen(open === r.id ? null : r.id)}>{open === r.id ? 'Hide' : 'Open'}</button>
-              {!__PREVIEW__ && <button className="btn btn-sm" onClick={() => downloadText(outputToText(r.output), `${safeName(names[r.toolId]?.name)}.txt`)}>⬇️ .txt</button>}
+              <button className="btn btn-sm" onClick={() => downloadText(outputToText(r.output), `${safeName(names[r.toolId]?.name)}.txt`)}>⬇️ .txt</button>
               <button className="btn btn-sm btn-danger" onClick={() => remove(r.id)}>Delete</button>
             </span>
           </div>

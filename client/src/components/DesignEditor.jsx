@@ -2,6 +2,7 @@
 // The document is plain JSON (saved to the server); export draws it onto a <canvas>.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { downloadBlob, safeName } from '../lib/download.js';
+import { buildTemplates, TEMPLATE_CATEGORIES } from './templates.js';
 
 export const PRESETS = {
   'instagram-post': { label: 'Instagram post', w: 1080, h: 1080 },
@@ -20,70 +21,60 @@ const text = (o) => ({ id: uid(), type: 'text', x: 80, y: 80, w: 600, h: 120, te
 const rect = (o) => ({ id: uid(), type: 'rect', x: 100, y: 100, w: 400, h: 240, fill: '#ff3d81', radius: 24, opacity: 1, ...o });
 const circle = (o) => ({ id: uid(), type: 'circle', x: 100, y: 100, w: 300, h: 300, fill: '#ffd23f', opacity: 1, ...o });
 
-/** Starter templates; {brand} is replaced with the learner's brand name. */
-export function templates(brand = 'Your Brand') {
-  return [
-    {
-      name: 'Bold sale post',
-      doc: {
-        preset: 'instagram-post', width: 1080, height: 1080,
-        background: { type: 'gradient', color: '#ff3d81', color2: '#ffd23f', angle: 135 },
-        elements: [
-          circle({ x: 640, y: -120, w: 560, h: 560, fill: '#ffffff', opacity: 0.18 }),
-          text({ x: 80, y: 120, w: 920, h: 120, text: brand.toUpperCase(), fontFamily: 'Bebas Neue', fontSize: 96, fontWeight: 400, color: '#1b0b3a' }),
-          text({ x: 80, y: 300, w: 920, h: 320, text: 'Weekend\nSpecial', fontFamily: 'Outfit', fontSize: 150, fontWeight: 800, color: '#ffffff', lineHeight: 1 }),
-          rect({ x: 80, y: 760, w: 520, h: 130, fill: '#1b0b3a', radius: 65 }),
-          text({ x: 80, y: 792, w: 520, h: 70, text: 'Visit us today', fontSize: 52, fontWeight: 700, color: '#ffd23f', align: 'center' }),
-        ],
-      },
-    },
-    {
-      name: 'Event flyer',
-      doc: {
-        preset: 'flyer', width: 1275, height: 1650,
-        background: { type: 'solid', color: '#f5efe6' },
-        elements: [
-          rect({ x: 0, y: 0, w: 1275, h: 620, fill: '#0f766e', radius: 0 }),
-          text({ x: 90, y: 140, w: 1100, h: 120, text: 'YOU\'RE INVITED', fontFamily: 'Bebas Neue', fontSize: 110, fontWeight: 400, color: '#ffd23f' }),
-          text({ x: 90, y: 270, w: 1100, h: 260, text: `${brand} Pop-Up`, fontFamily: 'Playfair Display', fontSize: 120, fontWeight: 700, color: '#ffffff', lineHeight: 1.05 }),
-          text({ x: 90, y: 720, w: 1100, h: 200, text: 'Saturday · 10am – 2pm\nCommunity Center, Main Hall', fontSize: 60, fontWeight: 600, color: '#111827', lineHeight: 1.35 }),
-          text({ x: 90, y: 1000, w: 1100, h: 260, text: 'Free samples · Live demo · Meet the maker', fontSize: 48, fontWeight: 500, color: '#374151', lineHeight: 1.4 }),
-          rect({ x: 90, y: 1380, w: 1095, h: 150, fill: '#ff3d81', radius: 30 }),
-          text({ x: 90, y: 1420, w: 1095, h: 80, text: 'Bring a friend!', fontSize: 64, fontWeight: 800, color: '#ffffff', align: 'center' }),
-        ],
-      },
-    },
-    {
-      name: 'Story announcement',
-      doc: {
-        preset: 'story', width: 1080, height: 1920,
-        background: { type: 'gradient', color: '#1b0b3a', color2: '#6b5bff', angle: 180 },
-        elements: [
-          circle({ x: -200, y: 1200, w: 900, h: 900, fill: '#3dd6ff', opacity: 0.25 }),
-          text({ x: 90, y: 260, w: 900, h: 100, text: 'NEW', fontFamily: 'Bebas Neue', fontSize: 120, fontWeight: 400, color: '#42e6a4' }),
-          text({ x: 90, y: 400, w: 900, h: 500, text: `Something fresh from ${brand}`, fontSize: 120, fontWeight: 800, color: '#ffffff', lineHeight: 1.05 }),
-          text({ x: 90, y: 1500, w: 900, h: 100, text: 'Tap the link to see more ↑', fontSize: 56, fontWeight: 600, color: '#ffd23f' }),
-        ],
-      },
-    },
-    {
-      name: 'Clean thumbnail',
-      doc: {
-        preset: 'thumbnail', width: 1280, height: 720,
-        background: { type: 'solid', color: '#111827' },
-        elements: [
-          rect({ x: 700, y: 0, w: 580, h: 720, fill: '#ffd23f', radius: 0 }),
-          text({ x: 70, y: 170, w: 640, h: 380, text: 'How we\ngot our first\n100 customers', fontSize: 84, fontWeight: 800, color: '#ffffff', lineHeight: 1.05 }),
-          text({ x: 760, y: 300, w: 460, h: 140, text: brand, fontFamily: 'Pacifico', fontSize: 80, fontWeight: 400, color: '#111827', align: 'center' }),
-        ],
-      },
-    },
-  ];
-}
-
 export function blankDoc(preset = 'instagram-post') {
   const p = PRESETS[preset];
   return { preset, width: p.w, height: p.h, background: { type: 'solid', color: '#1b0b3a' }, elements: [] };
+}
+
+// ---- rendering helpers -------------------------------------------------------------
+export function bgCss(bg) {
+  return bg.type === 'gradient' ? { background: `linear-gradient(${bg.angle ?? 135}deg, ${bg.color}, ${bg.color2})` } : { background: bg.color };
+}
+
+export function elStyle(el) {
+  return {
+    left: el.x, top: el.y, width: el.w, height: el.type === 'text' ? 'auto' : el.h, minHeight: el.type === 'text' ? el.fontSize * el.lineHeight : undefined,
+    opacity: el.opacity, transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
+    ...(el.type === 'rect' ? { background: el.fill, borderRadius: el.radius } : {}),
+    ...(el.type === 'circle' ? { background: el.fill, borderRadius: '50%' } : {}),
+    ...(el.type === 'image' ? { backgroundImage: `url(${el.src})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: el.radius } : {}),
+    ...(el.type === 'text' ? { fontFamily: `"${el.fontFamily}", sans-serif`, fontSize: el.fontSize, fontWeight: el.fontWeight, color: el.color, textAlign: el.align, lineHeight: el.lineHeight } : {}),
+  };
+}
+
+/** Read-only miniature of a design (template gallery, saved-design list). */
+export function DocPreview({ doc, width = 200 }) {
+  const scale = width / doc.width;
+  return (
+    <div className="doc-preview" style={{ width, height: doc.height * scale }} aria-hidden>
+      <div className="artboard" style={{ width: doc.width, height: doc.height, transform: `scale(${scale})`, ...bgCss(doc.background) }}>
+        {doc.elements.map((el) => <div key={el.id} className={`el el-${el.type}`} style={elStyle(el)}>{el.type === 'text' && el.text}</div>)}
+      </div>
+    </div>
+  );
+}
+
+/** Template gallery; `fields` fills templates with the learner's (or AI's) words. */
+export function TemplateGallery({ fields, onPick, presetFilter }) {
+  const [cat, setCat] = useState('All');
+  const all = useMemo(() => buildTemplates(fields), [fields]);
+  const list = all.filter((t) => (cat === 'All' || t.category === cat) && (!presetFilter || t.doc.preset === presetFilter));
+  return (
+    <div className="stack" style={{ '--gap': '12px' }}>
+      <div className="tabs" role="tablist" style={{ width: '100%' }}>
+        {['All', ...TEMPLATE_CATEGORIES].map((c) => <button key={c} role="tab" className="tab" aria-selected={cat === c} onClick={() => setCat(c)}>{c}</button>)}
+      </div>
+      <div className="template-grid">
+        {list.map((t) => (
+          <button key={t.name} className="template-card" onClick={() => onPick(structuredClone(t.doc), t.name)}>
+            <DocPreview doc={t.doc} width={180} />
+            <b>{t.name}</b>
+            <span className="muted small">{PRESETS[t.doc.preset]?.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ---- export ------------------------------------------------------------------------
@@ -179,7 +170,7 @@ async function shrinkImage(file, max = 1600) {
 }
 
 // ---- editor ------------------------------------------------------------------------
-export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving, downloadsDisabled }) {
+export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving }) {
   const [doc, setDoc] = useState(initial ?? blankDoc());
   const [name, setName] = useState(initialName);
   const [sel, setSel] = useState(null);
@@ -280,11 +271,8 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
     }
   }
 
-  const bgStyle = doc.background.type === 'gradient'
-    ? { background: `linear-gradient(${doc.background.angle ?? 135}deg, ${doc.background.color}, ${doc.background.color2})` }
-    : { background: doc.background.color };
-
-  const tpls = useMemo(() => templates(brand || 'Your Brand'), [brand]);
+  const bgStyle = bgCss(doc.background);
+  const tpls = useMemo(() => buildTemplates({ brand }), [brand]);
 
   return (
     <div className="designer">
@@ -295,8 +283,8 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
         </select>
         <button className="btn btn-sm" onClick={undo} disabled={!history.length} title="Undo (Ctrl+Z)">↶ Undo</button>
         {onSave && <button className="btn btn-sm" onClick={() => onSave({ name, doc })} disabled={saving}>{saving ? 'Saving…' : '💾 Save'}</button>}
-        <button className="btn btn-sm btn-primary" onClick={() => exportAs('image/png')} disabled={exporting || downloadsDisabled}>⬇️ PNG</button>
-        <button className="btn btn-sm" onClick={() => exportAs('image/jpeg')} disabled={exporting || downloadsDisabled}>JPG</button>
+        <button className="btn btn-sm btn-primary" onClick={() => exportAs('image/png')} disabled={exporting}>⬇️ PNG</button>
+        <button className="btn btn-sm" onClick={() => exportAs('image/jpeg')} disabled={exporting}>JPG</button>
       </div>
 
       <div className="designer-body">
@@ -319,10 +307,11 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
             <label className="small">Colour 2<input type="color" value={doc.background.color2} onChange={(e) => setDoc({ ...doc, background: { ...doc.background, color2: e.target.value } })} /></label>
           )}
 
-          <p className="designer-label">Templates</p>
-          {tpls.map((t) => (
+          <p className="designer-label">Templates ({tpls.length})</p>
+          {tpls.filter((t) => t.doc.preset === doc.preset).map((t) => (
             <button key={t.name} className="btn btn-sm btn-ghost" style={{ justifyContent: 'flex-start' }} onClick={() => { commit(structuredClone(t.doc)); setSel(null); }}>{t.name}</button>
           ))}
+          <p className="hint">More sizes: change the size above, or pick from the full gallery.</p>
         </aside>
 
         <div className="designer-stage" ref={wrapRef} onPointerDown={() => setSel(null)}>
@@ -332,15 +321,7 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
                 <div
                   key={el.id}
                   className={`el el-${el.type} ${sel === el.id ? 'is-selected' : ''}`}
-                  style={{
-                    left: el.x, top: el.y, width: el.w, height: el.type === 'text' ? 'auto' : el.h, minHeight: el.type === 'text' ? el.fontSize * el.lineHeight : undefined,
-                    opacity: el.opacity, transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-                    ...(el.type === 'rect' ? { background: el.fill, borderRadius: el.radius } : {}),
-                    ...(el.type === 'circle' ? { background: el.fill, borderRadius: '50%' } : {}),
-                    ...(el.type === 'image' ? { backgroundImage: `url(${el.src})`, backgroundSize: 'cover', backgroundPosition: 'center', borderRadius: el.radius } : {}),
-                    ...(el.type === 'text' ? { fontFamily: `"${el.fontFamily}", sans-serif`, fontSize: el.fontSize, fontWeight: el.fontWeight, color: el.color, textAlign: el.align, lineHeight: el.lineHeight } : {}),
-                    '--handle': `${Math.max(14, 14 / scale)}px`,
-                  }}
+                  style={{ ...elStyle(el), '--handle': `${Math.max(14, 14 / scale)}px` }}
                   onPointerDown={(e) => startDrag(e, el, 'move')}
                 >
                   {el.type === 'text' && el.text}

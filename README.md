@@ -76,6 +76,7 @@ Unlocked by the **Ambassador certificate** (passing the Ambassador Mission). Gra
 
 - **My brand**: their own facts. The AI never invents prices, results or reviews.
 - **AI Toolkit**: all six tools on one screen, run in "own brand" mode with no ambassador disclosure needed. Each result can be copied or downloaded.
+- **17 free templates** (`components/templates.js`): sale, events, launch, tips and thumbnails. Text auto-fits, and each template can be filled from an AI result (**🎨 Make a design**). A video script result becomes Video Maker scenes (**🎬 Make a video**). An "Open Canva" link lets learners also use their own free Canva account; Canva's editor can't be embedded inside other apps.
 - **Design Studio** (`components/DesignEditor.jsx`): a Canva-style editor with size presets (post, story, flyer, poster, thumbnail), templates, text, shapes, photos, gradients, layers and undo. Exports PNG or JPG. Designs are saved per user.
 - **Video Maker** (`components/VideoMaker.jsx`): scenes with animated backgrounds or the learner's own photos and clips, plus animated text. **Music is generated in the browser** (`lib/beats.js`), so every track is original and copyright-free. Exports MP4 or WebM, depending on the browser, and can send a video to the Showcase.
 - **My files**: download every draft (single files or all at once) and every design.
@@ -88,7 +89,7 @@ Learners post their own marketing videos (upload or link) in **Showcase**. Video
 
 ## Clickable preview (artifact)
 
-`npm run build:preview` builds a self-contained demo at `preview/marketcraft-preview.html`. It uses a simulated server and sign-in (`client/src/preview/`) and keeps data in the viewer's browser, so it can be shared as a claude.ai artifact. It has demo accounts for Admin, Adult learner and Kid on a parent account. AI features answer "runs in the full app".
+`npm run build:preview` builds a self-contained demo at `preview/marketcraft-preview.html`. It uses a simulated server and sign-in (`client/src/preview/`) and keeps data in the viewer's browser, so it can be shared as a claude.ai artifact. Downloads in the artifact go through the claude.ai `downloads` permission, which asks the viewer to confirm each save. It has demo accounts for Admin, Adult learner and Kid on a parent account. AI features answer "runs in the full app".
 
 ## Ambassador Program
 

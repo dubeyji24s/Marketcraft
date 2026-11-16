@@ -70,11 +70,11 @@ export function CertificateView() {
     <div className="stack" style={{ '--gap': '18px' }}>
       <div className="row spread no-print">
         <Link to="/app/certificates" className="muted small">← All certificates</Link>
-        {__PREVIEW__ ? <span className="chip">Download & print work in the full app</span> : <div className="row">
+        <div className="row">
           <button className="btn btn-primary" onClick={png} disabled={busy}>⬇️ Download PNG</button>
           <button className="btn" onClick={() => downloadCertificateSvg(svgRef.current, `${fileBase}.svg`)}>SVG</button>
-          <button className="btn" onClick={() => window.print()}>🖨 Print / Save PDF</button>
-        </div>}
+          {!__PREVIEW__ && <button className="btn" onClick={() => window.print()}>🖨 Print / Save PDF</button>}
+        </div>
       </div>
       <div className="certificate-wrap"><Certificate ref={svgRef} cert={cert} /></div>
       <div className="card no-print small">

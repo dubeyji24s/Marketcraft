@@ -451,3 +451,10 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .bg-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
 .bg-swatch { aspect-ratio: 1; border-radius: 10px; border: 2px solid transparent; cursor: pointer; }
 .bg-swatch.is-on { border-color: #fff; box-shadow: 0 0 0 2px var(--brand); }
+.template-grid { display: grid; gap: 14px; align-items: start; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.template-card { display: grid; gap: 6px; justify-items: start; align-content: start; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-align: left; transition: transform 0.2s var(--ease), border-color 0.2s; }
+.template-card:hover { transform: translateY(-3px); border-color: var(--brand); }
+.doc-preview { position: relative; overflow: hidden; border-radius: 8px; box-shadow: 0 8px 20px -10px rgb(0 0 0 / 0.6); max-width: 100%; }
+.doc-preview .el { cursor: inherit; }
+.handoff-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.handoff-bar select { width: auto; flex: 1 1 220px; padding: 8px 10px; }

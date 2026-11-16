@@ -168,9 +168,9 @@ function drawScene(ctx, W, H, scene, t, media) {
   ctx.globalAlpha = 1;
 }
 
-export default function VideoMaker({ brand, downloadsDisabled, onPostToShowcase }) {
+export default function VideoMaker({ brand, onPostToShowcase, initialScenes }) {
   const [format, setFormat] = useState('vertical');
-  const [scenes, setScenes] = useState(() => [
+  const [scenes, setScenes] = useState(() => initialScenes?.length ? initialScenes : [
     newScene({ text: brand ? `Meet ${brand}` : 'Meet our brand', subtext: 'Made with care', bg: { kind: 'animated', style: 'aurora' } }),
     newScene({ text: 'Here\'s why people love it', bg: { kind: 'animated', style: 'particles' } }),
     newScene({ text: 'Try it today', subtext: 'Link in bio', bg: { kind: 'animated', style: 'sunset' }, duration: 3.5 }),
@@ -297,7 +297,7 @@ export default function VideoMaker({ brand, downloadsDisabled, onPostToShowcase 
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
       const file = new File([blob], `${safeName(title)}.${ext}`, { type: blob.type });
       setLastVideo(file);
-      if (!downloadsDisabled) downloadBlob(blob, file.name);
+      downloadBlob(blob, file.name);
       actx?.close().catch(() => {});
       setState('idle');
       setProgress(0);
@@ -321,14 +321,13 @@ export default function VideoMaker({ brand, downloadsDisabled, onPostToShowcase 
         {state === 'idle' ? (
           <>
             <button className="btn btn-sm" onClick={play}>▶ Preview</button>
-            <button className="btn btn-sm btn-primary" onClick={record} disabled={downloadsDisabled}>⬇️ Export video</button>
+            <button className="btn btn-sm btn-primary" onClick={record}>⬇️ Export video</button>
           </>
         ) : (
           <button className="btn btn-sm btn-danger" onClick={stop}>■ Stop</button>
         )}
       </div>
       {error && <div className="alert alert-error small">{error}</div>}
-      {downloadsDisabled && <div className="alert alert-info small">Preview mode: play your video here. Exporting and downloading work in the full app.</div>}
 
       <div className="designer-body">
         <aside className="designer-tools" aria-label="Scenes">
@@ -368,7 +367,7 @@ export default function VideoMaker({ brand, downloadsDisabled, onPostToShowcase 
           )}
           {lastVideo && !busy && (
             <div className="alert alert-success small" style={{ maxWidth: 520, margin: '12px auto 0' }}>
-              ✅ Video ready: <b>{lastVideo.name}</b>{downloadsDisabled ? '' : ' (downloaded)'}.
+              ✅ Video ready: <b>{lastVideo.name}</b>.
               {onPostToShowcase && <button className="btn btn-sm" style={{ marginLeft: 8 }} onClick={() => onPostToShowcase(lastVideo, title)}>🎥 Add to my Showcase</button>}
             </div>
           )}

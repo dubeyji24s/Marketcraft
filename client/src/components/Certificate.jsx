@@ -1,4 +1,5 @@
 import { forwardRef } from 'react';
+import { downloadBlob } from '../lib/download.js';
 
 const W = 1100;
 const H = 780;
@@ -104,11 +105,7 @@ export async function downloadCertificatePng(svgEl, filename) {
     canvas.height = H * scale;
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise((r) => canvas.toBlob(r, 'image/png'));
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    await downloadBlob(blob, filename);
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -116,8 +113,5 @@ export async function downloadCertificatePng(svgEl, filename) {
 
 export function downloadCertificateSvg(svgEl, filename) {
   const xml = new XMLSerializer().serializeToString(svgEl);
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([xml], { type: 'image/svg+xml' }));
-  a.download = filename;
-  a.click();
+  return downloadBlob(new Blob([xml], { type: 'image/svg+xml' }), filename);
 }

@@ -3,7 +3,7 @@
 // browser. AI features answer with a clear "needs the full app" message.
 import DATA from './data.json';
 
-const KEY = 'mc-preview-db-v4';
+const KEY = 'mc-preview-db-v5';
 const AI_OFF = 'AI features run in the full Marketcraft app once a Claude API key is added. This preview simulates everything else.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
@@ -32,7 +32,26 @@ function seed() {
   return {
     session: null,
     designs: [],
-    toolRuns: [],
+    toolRuns: [
+      { id: id(), userId: grad.id, scope: 'lab', toolId: 'social-post', createdAt: t, inputs: {}, output: {
+        options: [
+          { style: 'Example: personal story', hook: 'I knit this scarf on a rainy Sunday', caption: 'Every Bright Scarves piece is hand-knitted in small batches, so no two are exactly alike. Which colour would you gift? (Example AI result)', hashtags: ['BrightScarves', 'handmade'], callToAction: 'Shop the new colours', visualIdea: 'Close-up of hands knitting by a window' },
+          { style: 'Example: gift idea', hook: 'The cozy gift they will actually use', caption: 'Soft, handmade and made to last: a Bright Scarves wool scarf is the gift that gets worn all winter. (Example AI result)', hashtags: ['GiftIdeas', 'BrightScarves'], callToAction: 'Order before the holidays', visualIdea: 'Scarf wrapped in a gift box' },
+        ],
+        disclosureLine: 'Not needed: this is your own brand.', bestTimeToPost: 'Weekday evenings',
+      } },
+      { id: id(), userId: grad.id, scope: 'lab', toolId: 'video-script', createdAt: t, inputs: {}, output: {
+        title: 'Example: 15-second scarf reel',
+        hook: 'Rainy day? Wrap up in colour.',
+        scenes: [
+          { time: '0:00-0:03', visual: 'Rain on the window', voiceover: 'Rainy day?', onScreenText: 'Rainy day?' },
+          { time: '0:03-0:07', visual: 'Hands knitting', voiceover: 'Every scarf is hand-knitted', onScreenText: 'Hand-knitted in small batches' },
+          { time: '0:07-0:11', visual: 'Scarf being wrapped', voiceover: 'Soft, warm, made to last', onScreenText: 'Soft · Warm · Made to last' },
+          { time: '0:11-0:15', visual: 'Logo', voiceover: 'Find yours today', onScreenText: 'Bright Scarves Co.' },
+        ],
+        callToAction: 'Link in bio', shotList: ['Window', 'Knitting close-up', 'Gift wrap'], filmingTips: ['Use window light'], disclosureLine: 'Not needed: own brand.',
+      } },
+    ],
     certificates,
     users,
     lessons: DATA.lessons.map((l) => stamp({ ...l, generatedBy: 'staff', published: true, originality: { score: 100, passed: true, revisions: 0 } })),
@@ -442,7 +461,7 @@ on('PUT', '/lab/brand', (_, body) => {
   return { brand: body, newBadges: first ? reward(u, 30, ['lab']) : [] };
 });
 on('POST', '/lab/tools/:id', () => { needLab(); fail(503, AI_OFF); });
-on('GET', '/lab/runs', () => { needLab(); return { runs: [] }; });
+on('GET', '/lab/runs', () => { const u = needLab(); return { runs: db().toolRuns.filter((r) => r.userId === u.id) }; });
 const designMeta = ({ doc, ...d }) => ({ ...d, width: doc.width, height: doc.height, preset: doc.preset ?? null });
 on('GET', '/lab/designs', () => { const u = needLab(); return { designs: db().designs.filter((d) => d.userId === u.id).map(designMeta) }; });
 on('GET', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); return { design: db().designs.find((d) => d.id === did && d.userId === u.id) ?? fail(404, 'Design not found.') }; });

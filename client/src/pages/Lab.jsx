@@ -1,19 +1,18 @@
-/* global __PREVIEW__ */
 // My Marketing Lab: unlocked by the Ambassador certificate. Graduates market their OWN
 // product or service with every tool in one place.
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { ErrorBox, Loading, ConfirmButton } from '../components/common.jsx';
 import { OutputView } from './Ambassador.jsx';
-import DesignEditor, { blankDoc, renderDoc, PRESETS } from '../components/DesignEditor.jsx';
+import DesignEditor, { blankDoc, renderDoc, PRESETS, TemplateGallery } from '../components/DesignEditor.jsx';
+import { designChoicesFromRun, scenesFromScript } from '../components/templates.js';
 import VideoMaker from '../components/VideoMaker.jsx';
 import { downloadBlob, downloadText, outputToText, safeName } from '../lib/download.js';
 import { useUI } from '../store/ui.js';
 import { useAuth } from '../store/auth.js';
 
-const NO_DOWNLOADS = __PREVIEW__;
 const TABS = [
   ['brand', '🏷️', 'My brand'],
   ['tools', '🧰', 'AI Toolkit'],
@@ -104,7 +103,26 @@ function BrandForm({ brand, onSaved }) {
 }
 
 /** All six AI tools on one screen. */
-function Toolkit({ s, brandReady, onRun }) {
+/** "Make a design / video" buttons that hand an AI result to the Design Studio or Video Maker. */
+function HandoffButtons({ run, brand, onHandoff }) {
+  const choices = designChoicesFromRun(run, brand);
+  const [pick, setPick] = useState(0);
+  if (!choices.length && run.toolId !== 'video-script') return null;
+  return (
+    <div className="handoff-bar" style={{ marginBottom: 10 }}>
+      {choices.length > 1 && (
+        <select aria-label="Which result to design" value={pick} onChange={(e) => setPick(+e.target.value)}>
+          {choices.map((c, i) => <option key={i} value={i}>{c.label.slice(0, 70)}</option>)}
+        </select>
+      )}
+      {choices.length > 0 && <button className="btn btn-sm btn-primary" onClick={() => onHandoff({ kind: 'design', fields: choices[pick].fields, from: choices[pick].label })}>🎨 Make a design</button>}
+      {run.toolId === 'video-script' && <button className="btn btn-sm btn-primary" onClick={() => onHandoff({ kind: 'video', scenes: scenesFromScript(run) })}>🎬 Make a video</button>}
+    </div>
+  );
+}
+
+function Toolkit({ s, brandReady, onRun, onHandoff }) {
+  const recent = useApi('/lab/runs');
   const [toolId, setToolId] = useState(s.tools[0].id);
   const [inputs, setInputs] = useState({});
   const [results, setResults] = useState([]);
@@ -182,7 +200,7 @@ function Toolkit({ s, brandReady, onRun }) {
           <button className="btn btn-primary" disabled={busy || missing.length > 0 || !brandReady}>{busy ? <><span className="spinner" /> Working…</> : '✨ Generate'}</button>
         </form>
 
-        {results.map((r) => {
+        {[...results, ...(recent.data?.runs ?? []).filter((r) => !results.some((x) => x.id === r.id))].map((r) => {
           const t = s.tools.find((x) => x.id === r.toolId);
           return (
             <div key={r.id} className="card page-enter">
@@ -190,9 +208,10 @@ function Toolkit({ s, brandReady, onRun }) {
                 <b>{t?.icon} {t?.name}</b>
                 <span className="row">
                   <button className="btn btn-sm" onClick={() => navigator.clipboard?.writeText(outputToText(r.output)).then(() => toast('Copied!', 'success'), () => {})}>Copy</button>
-                  <button className="btn btn-sm btn-primary" disabled={NO_DOWNLOADS} onClick={() => downloadText(outputToText(r.output), `${safeName(t?.name)}.txt`)}>⬇️ Download</button>
+                  <button className="btn btn-sm btn-primary" onClick={() => downloadText(outputToText(r.output), `${safeName(t?.name)}.txt`)}>⬇️ Download</button>
                 </span>
               </div>
+              <HandoffButtons run={r} brand={s.brand?.name} onHandoff={onHandoff} />
               <OutputView value={r.output} toast={toast} />
             </div>
           );
@@ -202,11 +221,12 @@ function Toolkit({ s, brandReady, onRun }) {
   );
 }
 
-function DesignStudio({ brand, onPostToShowcase }) {
+function DesignStudio({ brand, handoff, clearHandoff }) {
   const { data, reload } = useApi('/lab/designs');
   const [open, setOpen] = useState(null); // { id?, name, doc }
   const [saving, setSaving] = useState(false);
   const toast = useUI((x) => x.toast);
+  const galleryFields = useMemo(() => ({ brand: brand?.name, hashtags: brand?.hashtags }), [brand?.name, brand?.hashtags]);
 
   async function openDesign(id) {
     const { design } = await api.get(`/lab/designs/${id}`);
@@ -233,14 +253,23 @@ function DesignStudio({ brand, onPostToShowcase }) {
     return (
       <div className="stack" style={{ '--gap': '12px' }}>
         <button className="btn btn-sm btn-ghost" style={{ width: 'fit-content' }} onClick={() => { setOpen(null); reload(); }}>← All designs</button>
-        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving} downloadsDisabled={NO_DOWNLOADS} />
-        {NO_DOWNLOADS && <p className="hint">Preview mode: designs save here; PNG/JPG downloads work in the full app.</p>}
+        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving} />
       </div>
     );
   }
 
   return (
     <div className="stack" style={{ '--gap': '18px' }}>
+      {handoff && (
+        <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#ff3d81,#ffd23f)' }}>
+          <div className="row spread">
+            <h2 style={{ margin: 0 }}>✨ Pick a template for your AI text</h2>
+            <button className="btn btn-sm btn-ghost" onClick={clearHandoff}>Dismiss</button>
+          </div>
+          <p className="muted small">From: {handoff.from}. Every template below already has your words in it. Pick one, then edit anything.</p>
+          <TemplateGallery fields={handoff.fields} onPick={(doc, name) => { setOpen({ name: `${name} · ${brand?.name ?? 'design'}`, doc }); clearHandoff(); }} />
+        </div>
+      )}
       <div className="card">
         <h2>🎨 Start a new design</h2>
         <p className="muted small">Pick a size. You can add text, shapes and your own photos, or start from a template inside the editor.</p>
@@ -253,6 +282,18 @@ function DesignStudio({ brand, onPostToShowcase }) {
             </button>
           ))}
         </div>
+      </div>
+      <div className="card">
+        <h2>🖼️ Free templates</h2>
+        <p className="muted small">Original Marketcraft templates, free to use. Your brand name is already filled in.</p>
+        <TemplateGallery fields={galleryFields} onPick={(doc, name) => setOpen({ name: `${name} · ${brand?.name ?? 'design'}`, doc })} />
+      </div>
+      <div className="card row spread">
+        <div style={{ flex: '1 1 300px' }}>
+          <h3 style={{ margin: 0 }}>Prefer Canva?</h3>
+          <p className="muted small" style={{ margin: '4px 0 0' }}>You can also open your own free Canva account in a new tab. Copy your AI text here with the Copy buttons and paste it into Canva.</p>
+        </div>
+        <a className="btn" href="https://www.canva.com/" target="_blank" rel="noopener noreferrer">Open Canva ↗</a>
       </div>
       <div className="card">
         <h2>My designs</h2>
@@ -292,10 +333,9 @@ function Files({ s }) {
 
   return (
     <div className="stack" style={{ '--gap': '18px' }}>
-      {NO_DOWNLOADS && <div className="alert alert-info small">Preview mode: downloads work in the full app.</div>}
       <div className="card">
         <div className="row spread"><h2 style={{ margin: 0 }}>✍️ AI drafts</h2>
-          <button className="btn btn-sm btn-primary" disabled={NO_DOWNLOADS || !runs.data?.runs?.length} onClick={downloadAll}>⬇️ Download all</button></div>
+          <button className="btn btn-sm btn-primary" disabled={!runs.data?.runs?.length} onClick={downloadAll}>⬇️ Download all</button></div>
         {!runs.data?.runs?.length ? <p className="muted">No AI drafts yet. Use the AI Toolkit tab.</p> : (
           <ul className="checklist">
             {runs.data.runs.map((r) => (
@@ -304,7 +344,7 @@ function Files({ s }) {
                   <span><b>{names[r.toolId]?.icon} {names[r.toolId]?.name}</b> <span className="muted small">{new Date(r.createdAt).toLocaleString()}</span></span>
                   <span className="row">
                     <button className="btn btn-sm" onClick={() => setOpenRun(openRun === r.id ? null : r.id)}>{openRun === r.id ? 'Hide' : 'Open'}</button>
-                    <button className="btn btn-sm" disabled={NO_DOWNLOADS} onClick={() => downloadText(outputToText(r.output), `${safeName(names[r.toolId]?.name)}.txt`)}>⬇️ .txt</button>
+                    <button className="btn btn-sm" onClick={() => downloadText(outputToText(r.output), `${safeName(names[r.toolId]?.name)}.txt`)}>⬇️ .txt</button>
                     <ConfirmButton onConfirm={async () => { await api.del(`/lab/runs/${r.id}`); runs.reload(); }} />
                   </span>
                 </div>
@@ -321,7 +361,7 @@ function Files({ s }) {
             {designs.data.designs.map((d) => (
               <li key={d.id} className="row spread">
                 <span style={{ flex: 1 }}><b>{d.name}</b> <span className="muted small">{d.width}×{d.height}</span></span>
-                <button className="btn btn-sm btn-primary" disabled={NO_DOWNLOADS} onClick={() => downloadDesign(d)}>⬇️ PNG</button>
+                <button className="btn btn-sm btn-primary" onClick={() => downloadDesign(d)}>⬇️ PNG</button>
               </li>
             ))}
           </ul>
@@ -335,6 +375,7 @@ function Files({ s }) {
 export default function Lab() {
   const { data, error, loading, setData } = useApi('/lab/status');
   const [tab, setTab] = useState(null);
+  const [handoff, setHandoff] = useState(null);
   const toast = useUI((x) => x.toast);
   const user = useAuth((x) => x.user);
 
@@ -373,9 +414,9 @@ export default function Lab() {
         ))}
       </div>
       {current === 'brand' && <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('tools'); }} />}
-      {current === 'tools' && <Toolkit s={data} brandReady={brandReady} />}
-      {current === 'design' && <DesignStudio brand={data.brand} />}
-      {current === 'video' && <VideoMaker brand={data.brand?.name} downloadsDisabled={NO_DOWNLOADS} onPostToShowcase={postToShowcase} />}
+      {current === 'tools' && <Toolkit s={data} brandReady={brandReady} onHandoff={(h) => { setHandoff(h); setTab(h.kind === 'video' ? 'video' : 'design'); }} />}
+      {current === 'design' && <DesignStudio brand={data.brand} handoff={handoff?.kind === 'design' ? handoff : null} clearHandoff={() => setHandoff(null)} />}
+      {current === 'video' && <VideoMaker key={handoff?.kind === 'video' ? handoff.scenes[0]?.id : 'default'} brand={data.brand?.name} initialScenes={handoff?.kind === 'video' ? handoff.scenes : undefined} onPostToShowcase={postToShowcase} />}
       {current === 'files' && <Files s={data} />}
     </div>
   );
