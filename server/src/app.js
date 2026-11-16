@@ -13,6 +13,7 @@ import studioRoutes from './routes/studio.js';
 import ambassadorRoutes from './routes/ambassador.js';
 import showcaseRoutes from './routes/showcase.js';
 import labRoutes from './routes/lab.js';
+import canvaRoutes from './routes/canva.js';
 import { AIError } from './ai/client.js';
 
 export function createApp() {
@@ -27,7 +28,7 @@ export function createApp() {
         directives: {
           defaultSrc: ["'self'"],
           scriptSrc: ["'self'", 'https://apis.google.com'],
-          connectSrc: ["'self'", 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://www.googleapis.com', ...emulator],
+          connectSrc: ["'self'", 'https://identitytoolkit.googleapis.com', 'https://securetoken.googleapis.com', 'https://www.googleapis.com', 'https://image.pollinations.ai', ...emulator],
           imgSrc: ["'self'", 'data:', 'blob:', 'https://lh3.googleusercontent.com'],
           mediaSrc: ["'self'", 'blob:'],
           frameSrc: ['https://www.youtube-nocookie.com', 'https://player.vimeo.com', 'https://www.loom.com', 'https://*.firebaseapp.com', 'https://*.web.app', 'https://accounts.google.com', ...emulator],
@@ -43,7 +44,7 @@ export function createApp() {
   // Designs can carry embedded images, so they get a larger body limit.
   const jsonSmall = express.json({ limit: '1mb' });
   const jsonLarge = express.json({ limit: '8mb' });
-  app.use((req, res, next) => (req.path.startsWith('/api/lab/designs') ? jsonLarge : jsonSmall)(req, res, next));
+  app.use((req, res, next) => (req.path.startsWith('/api/lab/designs') || req.path === '/api/canva/send-design' ? jsonLarge : jsonSmall)(req, res, next));
   app.use(cookieParser());
   app.use(loadUser);
 
@@ -65,6 +66,7 @@ export function createApp() {
   app.use('/api/ambassador', ambassadorRoutes);
   app.use('/api/showcase', showcaseRoutes);
   app.use('/api/lab', labRoutes);
+  app.use('/api/canva', canvaRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
   // Serve the built React app in production

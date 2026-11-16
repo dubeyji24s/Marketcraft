@@ -146,7 +146,7 @@ function Member({ s }) {
       </header>
 
       {!c.configured && <div className="alert alert-info">The admin hasn't filled in the company brief yet, so the AI tools and Mission will open once it's ready.</div>}
-      {!s.aiEnabled && <div className="alert alert-info">The AI tools need the server's AI key to be configured. You can still read every tool guide below.</div>}
+      {!s.aiEnabled && <div className="alert alert-info small">⚡ <b>Free Starter mode:</b> the tools write from the company brief with Marketcraft's built-in engine, free and instant. Always make the words your own before posting.</div>}
 
       <div className="two-col">
         <div className="card">

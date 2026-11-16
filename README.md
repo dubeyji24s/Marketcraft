@@ -70,6 +70,13 @@ docker run -p 4000:4000 --env-file server/.env -v mc-data:/app/server/data -v mc
 
 The image works on any container host (Cloud Run, Render, Fly.io, Railway…). Add the site's domain to Firebase's **Authorized domains** and set `CLIENT_ORIGIN` to the public URL.
 
+## Free by default (no AI key needed)
+
+- **Starter engine** (`server/src/ai/starter.js`): free, offline versions of all six marketing tools. They write from the brand brief using proven copy formulas, with no key and no cost. If `ANTHROPIC_API_KEY` is ever set, the tools switch to Claude automatically.
+- **Creator** (`client/src/lib/creator.js`): describe a design in plain words. Creator works out the format, occasion, mood, colours and details (dates, prices, places, quoted headlines) and makes 6 editable designs, or video scenes. It is free and offline.
+  - Optional **free AI picture** from the Pollinations service: no key, rate-limited and best effort. The description is sent to that service.
+- **Connect your own Canva** (`server/src/routes/canva.js`): learners can link their Canva Free or Pro account (Canva Connect API, OAuth + PKCE, encrypted tokens). **Send to Canva** uploads a design and opens it in their Canva. To switch it on, create an integration at canva.com/developers and set `CANVA_CLIENT_ID`, `CANVA_CLIENT_SECRET` and `CANVA_REDIRECT_URI`. Until Canva approves the integration, only accounts on the owner's Canva team can connect.
+
 ## My Marketing Lab
 
 Unlocked by the **Ambassador certificate** (passing the Ambassador Mission). Graduates market their **own** product or service in one place:

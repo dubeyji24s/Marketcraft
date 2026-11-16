@@ -69,7 +69,7 @@ router.post('/tools/:id', requireLab, toolLimiter, async (req, res, next) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
   try {
     const output = await runTool({ tool, inputs: parsed.data, brief: brand, user: req.user, referralLink: brand.website, mode: 'own' });
-    const run = await db.insert('toolRuns', { userId: req.user.id, scope: 'lab', toolId: tool.id, inputs: parsed.data, output });
+    const run = await db.insert('toolRuns', { userId: req.user.id, scope: 'lab', toolId: tool.id, inputs: parsed.data, output, engine: config.aiEnabled ? 'ai' : 'starter' });
     const mine = db.all('toolRuns', (r) => r.userId === req.user.id && r.scope === 'lab').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     for (const old of mine.slice(50)) await db.remove('toolRuns', old.id);
     res.status(201).json({ run });

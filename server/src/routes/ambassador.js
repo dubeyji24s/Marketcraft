@@ -112,7 +112,7 @@ router.post('/tools/:id', requireAmbassador, toolLimiter, async (req, res, next)
   try {
     const brief = getBrief();
     const output = await runTool({ tool, inputs: parsed.data, brief, user: req.user, referralLink: referralLink(brief, req.user.ambassador?.code) });
-    const run = await db.insert('toolRuns', { userId: req.user.id, toolId: tool.id, inputs: parsed.data, output });
+    const run = await db.insert('toolRuns', { userId: req.user.id, toolId: tool.id, inputs: parsed.data, output, engine: config.aiEnabled ? 'ai' : 'starter' });
     // keep each user's 30 most recent drafts
     const mine = db.all('toolRuns', (r) => r.userId === req.user.id && r.scope !== 'lab').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     for (const old of mine.slice(30)) await db.remove('toolRuns', old.id);

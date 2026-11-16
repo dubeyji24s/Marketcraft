@@ -180,8 +180,8 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   // tool input validation, then AI-off message
   assert.equal((await api('POST', '/ambassador/tools/social-post', { inputs: { platform: 'Myspace' } })).status, 400);
   assert.equal((await api('POST', '/ambassador/tools/nope', { inputs: {} })).status, 404);
-  const tool = await api('POST', '/ambassador/tools/compliance-check', { inputs: { draft: 'Check out this app! #ad', platform: 'Instagram' } });
-  assert.equal(tool.status, 503);
+  // brief not filled yet → 409; tools run on the free Starter engine once it is
+  assert.equal((await api('POST', '/ambassador/tools/compliance-check', { inputs: { draft: 'Check out this app!', platform: 'Instagram' } })).status, 409);
 
   // mission requires the company brief
   const mission = (await api('GET', '/studio/challenges')).body.challenges.find((c) => c.kind === 'ambassador');
@@ -205,6 +205,29 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   assert.match(st2.referralLink, /^https:\/\/partner\.example\/\?ref=[A-Z2-9]{8}&utm_source=marketcraft/);
   assert.equal(st2.mission.title, 'Ambassador Mission: Grow the Partner Website');
 
+  for (const [id, inputs] of [
+    ['persona', {}],
+    ['social-post', { platform: 'Instagram', topic: 'my favourite feature', goal: 'Get people to visit the website' }],
+    ['video-script', { length: '30 seconds', platform: 'TikTok', style: 'Personal story', idea: 'How I found a great deal' }],
+    ['ad-copy', { format: 'Printed flyer', audience: 'parents at the library' }],
+    ['content-calendar', { weeks: '2 weeks', platforms: 'Instagram and TikTok', time: '2-3 hours' }],
+    ['compliance-check', { draft: 'This is the BEST app, guaranteed results! Hurry!', platform: 'Instagram' }],
+  ]) {
+    const r = await api('POST', `/ambassador/tools/${id}`, { inputs });
+    assert.equal(r.status, 201, `${id}: ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.run.engine, 'starter');
+    const text = JSON.stringify(r.body.run.output);
+    assert.ok(!text.includes('SecretCo') || ['social-post', 'video-script', 'ad-copy', 'persona', 'compliance-check', 'content-calendar'].includes(id));
+    if (id === 'social-post') {
+      assert.equal(r.body.run.output.options.length, 3);
+      assert.ok(r.body.run.output.options.every((o) => o.caption.startsWith('#ad')), 'ambassador posts include disclosure');
+      assert.ok(text.includes('https://partner.example/?ref='), 'referral link filled');
+    }
+    if (id === 'compliance-check') {
+      assert.equal(r.body.run.output.verdict, 'Do not post yet');
+      assert.ok(r.body.run.output.issues.some((i) => /disclosure/i.test(i.problem)));
+    }
+  }
   const pass = await api('POST', '/studio/submissions', m, true);
   assert.equal(pass.status, 201, JSON.stringify(pass.body));
   const ev = pass.body.submission.evaluation;
@@ -227,7 +250,10 @@ test('auth, lessons, fail → retry → pass → certificate', async () => {
   const saved = await api('PUT', '/lab/brand', { ...emptyBrand, name: "Ada's Sourdough", description: 'Small-batch bread', website: 'https://ada.example' });
   assert.equal(saved.status, 200);
   assert.ok(saved.body.newBadges.some((b) => b.key === 'lab'));
-  assert.equal((await api('POST', '/lab/tools/social-post', { inputs: { platform: 'Instagram', topic: 'my bread', goal: 'Build awareness' } })).status, 503, 'AI off in tests');
+  const own = await api('POST', '/lab/tools/social-post', { inputs: { platform: 'Instagram', topic: 'my bread', goal: 'Build awareness' } });
+  assert.equal(own.status, 201, 'Starter engine runs without an AI key');
+  assert.ok(!JSON.stringify(own.body.run.output).includes('#ad'), 'own brand needs no ambassador disclosure');
+  assert.ok(JSON.stringify(own.body.run.output).includes("Ada's Sourdough"));
   const doc = { width: 1080, height: 1080, preset: 'instagram-post', background: { type: 'solid', color: '#fff' }, elements: [{ id: 'a', type: 'text', text: 'Hi' }] };
   const d = await api('POST', '/lab/designs', { name: 'Promo', doc });
   assert.equal(d.status, 201);

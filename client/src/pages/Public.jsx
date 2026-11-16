@@ -488,6 +488,8 @@ const LEGAL = {
       ['What we collect', 'Your name, email address and chosen role; a parent/guardian email for Kid Entrepreneur accounts; lesson progress, quiz results, badges and certificates; and the practice videos, links and written strategies you submit.'],
       ['How sign-in works', 'Accounts are managed by Google Firebase Authentication. We never see or store your password.'],
       ['AI processing', 'To give feedback, your written strategy, optional script and a few still frames from your uploaded video are sent to our AI provider (Anthropic) for evaluation. They are not used to publish anything.'],
+      ['Creator AI pictures', 'If you tick "Add a free AI picture" in Creator, your picture description (not your name or account) is sent to the free Pollinations image service to draw the picture. Leave it off if you prefer.'],
+      ['Your Canva', 'If you connect your own Canva account, we store an encrypted access token so we can send designs you choose to your Canva. You can disconnect at any time.'],
       ['Who can see your videos', 'Only you and Marketcraft administrators. Videos are never made public.'],
       ['Children', 'Anyone under 18 may only use Marketcraft through a parent\'s or guardian\'s own account; we store only the child\'s first name for certificates. A parent or guardian can ask us to view or delete their child\'s data at any time.'],
       ['Ambassador Program', 'If you join the Ambassador Program, we store your referral code and the drafts you create with the AI marketing tools (your 30 most recent). The program is for account holders 18+ (kids only through a parent\'s account). Your Marketcraft login also works as a normal user account on our partner website, which has its own privacy policy.'],

@@ -159,7 +159,7 @@ function SubmissionForm({ challenge, onResult, aiEnabled }) {
   return (
     <form className="card" onSubmit={submit}>
       <h2>📤 Submit your pitch</h2>
-      {!aiEnabled && <div className="alert alert-info small">AI is not configured on this server, so scoring runs in <b>offline demo mode</b> (a rough keyword-based guide).</div>}
+      {!aiEnabled && <div className="alert alert-info small">⚡ <b>Free scoring mode:</b> your pitch is scored on the rubric from your written strategy and script. Explain your hook, customer, value and visuals clearly.</div>}
       <ErrorBox error={error} />
       <div className="tabs" role="tablist" style={{ marginBottom: 14 }}>
         <button type="button" role="tab" className="tab" aria-selected={mode === 'upload'} onClick={() => setMode('upload')}>Upload video</button>

@@ -1,6 +1,6 @@
 // My Marketing Lab: unlocked by the Ambassador certificate. Graduates market their OWN
 // product or service with every tool in one place.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
@@ -8,6 +8,9 @@ import { ErrorBox, Loading, ConfirmButton } from '../components/common.jsx';
 import { OutputView } from './Ambassador.jsx';
 import DesignEditor, { blankDoc, renderDoc, PRESETS, TemplateGallery } from '../components/DesignEditor.jsx';
 import { designChoicesFromRun, scenesFromScript } from '../components/templates.js';
+import Creator from '../components/Creator.jsx';
+import { CanvaConnectCard, SendToCanvaButton, useCanva } from '../components/CanvaConnect.jsx';
+import { useLocation } from 'react-router-dom';
 import VideoMaker from '../components/VideoMaker.jsx';
 import { downloadBlob, downloadText, outputToText, safeName } from '../lib/download.js';
 import { useUI } from '../store/ui.js';
@@ -15,6 +18,7 @@ import { useAuth } from '../store/auth.js';
 
 const TABS = [
   ['brand', '🏷️', 'My brand'],
+  ['creator', '✨', 'Creator'],
   ['tools', '🧰', 'AI Toolkit'],
   ['design', '🎨', 'Design Studio'],
   ['video', '🎬', 'Video Maker'],
@@ -162,7 +166,7 @@ function Toolkit({ s, brandReady, onRun, onHandoff }) {
 
       <div className="stack" style={{ '--gap': '16px', minWidth: 0 }}>
         {!brandReady && <div className="alert alert-info small">Fill in <b>My brand</b> first so the tools know what to market.</div>}
-        {!s.aiEnabled && <div className="alert alert-info small">The AI tools switch on once the server has a Claude API key. You can still read each tool's guide.</div>}
+        {!s.aiEnabled && <div className="alert alert-info small">⚡ <b>Free Starter mode:</b> results are written from <b>your brand</b> by Marketcraft's built-in engine, free and instant. Edit them to sound like you.</div>}
         <form className="card" onSubmit={run}>
           <div className="row spread">
             <h2 style={{ margin: 0 }}>{tool.icon} {tool.name}</h2>
@@ -221,11 +225,12 @@ function Toolkit({ s, brandReady, onRun, onHandoff }) {
   );
 }
 
-function DesignStudio({ brand, handoff, clearHandoff }) {
+function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva }) {
   const { data, reload } = useApi('/lab/designs');
-  const [open, setOpen] = useState(null); // { id?, name, doc }
+  const [open, setOpen] = useState(handoff?.kind === 'doc' ? { name: handoff.name, doc: handoff.doc } : null); // { id?, name, doc }
   const [saving, setSaving] = useState(false);
   const toast = useUI((x) => x.toast);
+  useEffect(() => { if (handoff?.kind === 'doc') clearHandoff(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const galleryFields = useMemo(() => ({ brand: brand?.name, hashtags: brand?.hashtags }), [brand?.name, brand?.hashtags]);
 
   async function openDesign(id) {
@@ -253,14 +258,15 @@ function DesignStudio({ brand, handoff, clearHandoff }) {
     return (
       <div className="stack" style={{ '--gap': '12px' }}>
         <button className="btn btn-sm btn-ghost" style={{ width: 'fit-content' }} onClick={() => { setOpen(null); reload(); }}>← All designs</button>
-        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving} />
+        <DesignEditor key={open.id ?? 'new'} initial={open.doc} name={open.name} brand={brand?.name} onSave={save} saving={saving}
+          actions={canva?.connected ? ({ doc, name }) => <SendToCanvaButton doc={doc} name={name} toast={toast} /> : undefined} />
       </div>
     );
   }
 
   return (
     <div className="stack" style={{ '--gap': '18px' }}>
-      {handoff && (
+      {handoff?.kind === 'design' && (
         <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#ff3d81,#ffd23f)' }}>
           <div className="row spread">
             <h2 style={{ margin: 0 }}>✨ Pick a template for your AI text</h2>
@@ -288,13 +294,7 @@ function DesignStudio({ brand, handoff, clearHandoff }) {
         <p className="muted small">Original Marketcraft templates, free to use. Your brand name is already filled in.</p>
         <TemplateGallery fields={galleryFields} onPick={(doc, name) => setOpen({ name: `${name} · ${brand?.name ?? 'design'}`, doc })} />
       </div>
-      <div className="card row spread">
-        <div style={{ flex: '1 1 300px' }}>
-          <h3 style={{ margin: 0 }}>Prefer Canva?</h3>
-          <p className="muted small" style={{ margin: '4px 0 0' }}>You can also open your own free Canva account in a new tab. Copy your AI text here with the Copy buttons and paste it into Canva.</p>
-        </div>
-        <a className="btn" href="https://www.canva.com/" target="_blank" rel="noopener noreferrer">Open Canva ↗</a>
-      </div>
+      <CanvaConnectCard status={canva} onChange={reloadCanva} />
       <div className="card">
         <h2>My designs</h2>
         {!data?.designs?.length ? <p className="muted">No saved designs yet.</p> : (
@@ -376,14 +376,21 @@ export default function Lab() {
   const { data, error, loading, setData } = useApi('/lab/status');
   const [tab, setTab] = useState(null);
   const [handoff, setHandoff] = useState(null);
+  const canva = useCanva();
+  const location = useLocation();
   const toast = useUI((x) => x.toast);
+  useEffect(() => {
+    const c = new URLSearchParams(location.search).get('canva');
+    if (c === 'connected') toast('Your Canva is connected! Use "Send to Canva" on any design.', 'success');
+    if (c === 'failed') toast('Canva connection did not finish. Please try again.', 'error');
+  }, [location.search, toast]);
   const user = useAuth((x) => x.user);
 
   if (error) return <ErrorBox error={error} />;
   if (loading || !data) return <Loading />;
   if (!data.unlocked) return <Locked s={data} />;
   const brandReady = Boolean(data.brand?.name && data.brand?.description);
-  const current = tab ?? (brandReady ? 'tools' : 'brand');
+  const current = tab ?? (brandReady ? 'creator' : 'brand');
 
   async function postToShowcase(file, title) {
     try {
@@ -413,9 +420,12 @@ export default function Lab() {
           <button key={k} role="tab" className="tab" aria-selected={current === k} onClick={() => setTab(k)}><span aria-hidden>{icon}</span> {label}</button>
         ))}
       </div>
-      {current === 'brand' && <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('tools'); }} />}
+      {current === 'brand' && <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('creator'); }} />}
       {current === 'tools' && <Toolkit s={data} brandReady={brandReady} onHandoff={(h) => { setHandoff(h); setTab(h.kind === 'video' ? 'video' : 'design'); }} />}
-      {current === 'design' && <DesignStudio brand={data.brand} handoff={handoff?.kind === 'design' ? handoff : null} clearHandoff={() => setHandoff(null)} />}
+      {current === 'creator' && <Creator brand={data.brand?.name} canvaConnected={canva.data?.connected}
+        onEdit={(doc, name) => { setHandoff({ kind: 'doc', doc, name }); setTab('design'); }}
+        onVideo={(scenes) => { setHandoff({ kind: 'video', scenes }); setTab('video'); }} />}
+      {current === 'design' && <DesignStudio brand={data.brand} handoff={handoff?.kind === 'design' || handoff?.kind === 'doc' ? handoff : null} clearHandoff={() => setHandoff(null)} canva={canva.data} reloadCanva={canva.reload} />}
       {current === 'video' && <VideoMaker key={handoff?.kind === 'video' ? handoff.scenes[0]?.id : 'default'} brand={data.brand?.name} initialScenes={handoff?.kind === 'video' ? handoff.scenes : undefined} onPostToShowcase={postToShowcase} />}
       {current === 'files' && <Files s={data} />}
     </div>

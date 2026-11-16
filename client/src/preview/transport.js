@@ -2,9 +2,10 @@
 // ambassadors, parent accounts for kids, showcase approval) with data kept in this
 // browser. AI features answer with a clear "needs the full app" message.
 import DATA from './data.json';
+import { runStarter } from '@starter';
 
-const KEY = 'mc-preview-db-v5';
-const AI_OFF = 'AI features run in the full Marketcraft app once a Claude API key is added. This preview simulates everything else.';
+const KEY = 'mc-preview-db-v6';
+const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
 const now = () => new Date().toISOString();
@@ -35,8 +36,8 @@ function seed() {
     toolRuns: [
       { id: id(), userId: grad.id, scope: 'lab', toolId: 'social-post', createdAt: t, inputs: {}, output: {
         options: [
-          { style: 'Example: personal story', hook: 'I knit this scarf on a rainy Sunday', caption: 'Every Bright Scarves piece is hand-knitted in small batches, so no two are exactly alike. Which colour would you gift? (Example AI result)', hashtags: ['BrightScarves', 'handmade'], callToAction: 'Shop the new colours', visualIdea: 'Close-up of hands knitting by a window' },
-          { style: 'Example: gift idea', hook: 'The cozy gift they will actually use', caption: 'Soft, handmade and made to last: a Bright Scarves wool scarf is the gift that gets worn all winter. (Example AI result)', hashtags: ['GiftIdeas', 'BrightScarves'], callToAction: 'Order before the holidays', visualIdea: 'Scarf wrapped in a gift box' },
+          { style: 'Example: personal story', hook: 'I knit this scarf on a rainy Sunday', caption: 'Every Bright Scarves piece is hand-knitted in small batches, so no two are exactly alike. Which colour would you gift? (example)', hashtags: ['BrightScarves', 'handmade'], callToAction: 'Shop the new colours', visualIdea: 'Close-up of hands knitting by a window' },
+          { style: 'Example: gift idea', hook: 'The cozy gift they will actually use', caption: 'Soft, handmade and made to last: a Bright Scarves wool scarf is the gift that gets worn all winter. (example)', hashtags: ['GiftIdeas', 'BrightScarves'], callToAction: 'Order before the holidays', visualIdea: 'Scarf wrapped in a gift box' },
         ],
         disclosureLine: 'Not needed: this is your own brand.', bestTimeToPost: 'Weekday evenings',
       } },
@@ -388,8 +389,23 @@ on('POST', '/ambassador/join', (_, body) => {
   const newBadges = reward(u, 50, ['ambassador']);
   return { ...ambassadorStatus(u), newBadges };
 });
-on('POST', '/ambassador/tools/:id', () => { need(); fail(503, AI_OFF); });
-on('GET', '/ambassador/runs', () => { need(); return { runs: [] }; });
+const fillLink = (v, link) => JSON.parse(JSON.stringify(v).replaceAll('{{REFERRAL_LINK}}', link || '[your link]'));
+function starterRun(u, toolId, inputs, brief, mode, link, scope) {
+  const tool = DATA.tools.find((t) => t.id === toolId) ?? fail(404, 'Tool not found.');
+  for (const f of tool.fields) if (f.required && !String(inputs?.[f.key] ?? '').trim()) fail(400, `${f.label} is required.`);
+  const output = fillLink(runStarter(toolId, inputs, brief, { mode, referralLink: link }), link);
+  const run = { id: id(), createdAt: now(), userId: u.id, scope, toolId, inputs, output, engine: 'starter' };
+  db().toolRuns.unshift(run);
+  return { run };
+}
+on('POST', '/ambassador/tools/:id', ({ id: toolId }, body) => {
+  const u = need();
+  if (!u.ambassador && u.role !== 'admin') fail(403, 'Join the Ambassador Program to use the AI marketing tools.');
+  const b = db().brief;
+  if (!b.description) fail(409, 'The company brief has not been filled in yet. Ask an admin to complete it.');
+  return starterRun(u, toolId, body.inputs, b, 'ambassador', ambassadorStatus(u).referralLink, 'ambassador');
+});
+on('GET', '/ambassador/runs', () => { const u = need(); return { runs: db().toolRuns.filter((r) => r.userId === u.id && r.scope !== 'lab') }; });
 on('GET', '/ambassador/brief', () => { needAdmin(); return { brief: db().brief }; });
 on('PUT', '/ambassador/brief', (_, body) => { needAdmin(); if (body.website && !/^https?:\/\//.test(body.website)) fail(400, 'website: Invalid URL'); db().brief = { ...db().brief, ...body }; return { brief: db().brief }; });
 on('GET', '/ambassador/roster', () => {
@@ -460,8 +476,14 @@ on('PUT', '/lab/brand', (_, body) => {
   u.lab = { ...(u.lab ?? {}), brand: body };
   return { brand: body, newBadges: first ? reward(u, 30, ['lab']) : [] };
 });
-on('POST', '/lab/tools/:id', () => { needLab(); fail(503, AI_OFF); });
-on('GET', '/lab/runs', () => { const u = needLab(); return { runs: db().toolRuns.filter((r) => r.userId === u.id) }; });
+on('POST', '/lab/tools/:id', ({ id: toolId }, body) => {
+  const u = needLab();
+  const brand = u.lab?.brand;
+  if (!brand?.name || !brand.description) fail(409, 'Fill in "My brand" first (at least the name and what it does), so the tools know what to market.');
+  return starterRun(u, toolId, body.inputs, brand, 'own', brand.website, 'lab');
+});
+on('GET', '/canva/status', () => { need(); return { configured: false, connected: false, connectedAt: null, displayName: null }; });
+on('GET', '/lab/runs', () => { const u = needLab(); return { runs: db().toolRuns.filter((r) => r.userId === u.id && r.scope === 'lab') }; });
 const designMeta = ({ doc, ...d }) => ({ ...d, width: doc.width, height: doc.height, preset: doc.preset ?? null });
 on('GET', '/lab/designs', () => { const u = needLab(); return { designs: db().designs.filter((d) => d.userId === u.id).map(designMeta) }; });
 on('GET', '/lab/designs/:id', ({ id: did }) => { const u = needLab(); return { design: db().designs.find((d) => d.id === did && d.userId === u.id) ?? fail(404, 'Design not found.') }; });

@@ -458,3 +458,6 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .doc-preview .el { cursor: inherit; }
 .handoff-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .handoff-bar select { width: auto; flex: 1 1 220px; padding: 8px 10px; }
+.creator-box { background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 14%, var(--surface)), color-mix(in srgb, var(--brand-2) 10%, var(--surface))); }
+.creator-input { min-height: 110px; font-size: 1.1rem !important; line-height: 1.5; }
+.creator-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }

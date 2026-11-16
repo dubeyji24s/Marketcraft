@@ -29,6 +29,16 @@ export const config = {
   passThreshold: Number(process.env.PASS_THRESHOLD || 85),
   distinctionThreshold: Number(process.env.DISTINCTION_THRESHOLD || 95),
 
+  // Learners can connect their own Canva account (Canva Connect API, OAuth + PKCE)
+  canva: {
+    clientId: process.env.CANVA_CLIENT_ID || '',
+    clientSecret: process.env.CANVA_CLIENT_SECRET || '',
+    redirectUri: process.env.CANVA_REDIRECT_URI || 'http://127.0.0.1:4000/api/canva/callback',
+    get enabled() {
+      return Boolean(this.clientId && this.clientSecret);
+    },
+  },
+
   // Partner company the Ambassador Program promotes (details are edited in Admin → Company brief)
   companyUrl: process.env.COMPANY_URL || '',
 

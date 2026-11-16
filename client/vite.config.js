@@ -16,6 +16,8 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@transport': src(preview ? 'preview/transport.js' : 'lib/transport.js'),
         '@auth-provider': src(preview ? 'preview/authProvider.js' : 'lib/authProvider.js'),
+        // the free Starter engine is shared with the server
+        '@starter': fileURLToPath(new URL('../server/src/ai/starter.js', import.meta.url)),
       },
     },
     build: preview ? { chunkSizeWarningLimit: 900, outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : { chunkSizeWarningLimit: 900 },

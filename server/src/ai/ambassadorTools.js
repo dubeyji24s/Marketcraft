@@ -6,6 +6,7 @@
 import { z } from 'zod';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { getClient, baseParams, assertNotRefused, wrapAIError, AIError } from './client.js';
+import { runStarter } from './starter.js';
 
 const PLATFORMS = ['Instagram', 'TikTok', 'YouTube Shorts', 'Facebook', 'LinkedIn', 'X (Twitter)', 'Pinterest', 'WhatsApp / text message'];
 const disclosure = z.string().describe('A short, honest disclosure line the ambassador must include, e.g. "#ad — I\'m a brand ambassador for <Company>"');
@@ -322,8 +323,9 @@ function fillLinks(value, link) {
 
 export async function runTool({ tool, inputs, brief, user, referralLink, mode = 'ambassador' }) {
   const client = getClient();
-  if (!client) throw new AIError('The AI tools are not switched on yet: the server needs an ANTHROPIC_API_KEY.', 503);
   if (!brief?.description) throw new AIError('The company brief has not been filled in yet. Ask an admin to complete it.', 409);
+  // No AI key: the free Starter engine writes the result from the brief.
+  if (!client) return fillLinks(runStarter(tool.id, inputs, brief, { mode, referralLink }), referralLink);
   try {
     const res = await client.beta.messages.parse(
       baseParams({

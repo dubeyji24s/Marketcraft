@@ -170,7 +170,7 @@ async function shrinkImage(file, max = 1600) {
 }
 
 // ---- editor ------------------------------------------------------------------------
-export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving }) {
+export default function DesignEditor({ initial, name: initialName = 'Untitled design', brand, onSave, saving, actions }) {
   const [doc, setDoc] = useState(initial ?? blankDoc());
   const [name, setName] = useState(initialName);
   const [sel, setSel] = useState(null);
@@ -285,6 +285,7 @@ export default function DesignEditor({ initial, name: initialName = 'Untitled de
         {onSave && <button className="btn btn-sm" onClick={() => onSave({ name, doc })} disabled={saving}>{saving ? 'Saving…' : '💾 Save'}</button>}
         <button className="btn btn-sm btn-primary" onClick={() => exportAs('image/png')} disabled={exporting}>⬇️ PNG</button>
         <button className="btn btn-sm" onClick={() => exportAs('image/jpeg')} disabled={exporting}>JPG</button>
+        {actions?.({ doc, name })}
       </div>
 
       <div className="designer-body">
