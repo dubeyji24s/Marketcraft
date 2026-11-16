@@ -32,7 +32,7 @@ export function Footer() {
   return (
     <footer className="site-footer">
       <div className="container row spread">
-        <span className="muted small">© {new Date().getFullYear()} {APP_NAME}</span>
+        <span className="muted small">© {new Date().getFullYear()} {APP_NAME} · 🔒 We never sell your personal info · No marketing emails</span>
         <nav className="row small" aria-label="Legal">
           <Link to="/privacy">Privacy</Link>
           <Link to="/terms">Terms</Link>
@@ -342,7 +342,8 @@ export function Signup() {
         <Divider />
         <div className="field">
           <label htmlFor="email">{kidAccount ? "Parent's email" : 'Email'}</label>
-          <input id="email" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          <input id="email" type="email" autoComplete="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} aria-describedby="email-promise" />
+          <div id="email-promise" className="hint">🔒 We never sell your email and never send marketing emails. <Link to="/privacy" target="_blank">Privacy</Link></div>
         </div>
         <div className="field">
           <label htmlFor="password">{kidAccount ? "Parent's password" : 'Password'}</label>
@@ -485,12 +486,14 @@ const LEGAL = {
     title: 'Privacy Policy',
     body: [
       ['Draft notice', `${APP_NAME} is currently a school project. This policy is a working draft and must be reviewed by a qualified professional before the service is offered to the public.`],
+      ['We never sell your information', 'We never sell, rent or trade your personal information, including your email address, to anyone. We only use it to run your Marketcraft account.'],
+      ['No marketing emails', 'We don\'t send newsletters, promotions or any marketing emails. The only emails you will ever get are the sign-in ones you ask for: a link to verify your email address and, if you request it, a password reset link. These are sent by Google Firebase, the service that runs our sign-in.'],
       ['What we collect', 'Your name, email address and chosen role; a parent/guardian email for Kid Entrepreneur accounts; lesson progress, quiz results, badges and certificates; and the practice videos, links and written strategies you submit.'],
       ['How sign-in works', 'Accounts are managed by Google Firebase Authentication. We never see or store your password.'],
       ['AI processing', 'To give feedback, your written strategy, optional script and a few still frames from your uploaded video are sent to our AI provider (Anthropic) for evaluation. They are not used to publish anything.'],
       ['Creator AI pictures', 'If you tick "Add a free AI picture" in Creator, your picture description (not your name or account) is sent to the free Pollinations image service to draw the picture. Leave it off if you prefer.'],
       ['Your Canva', 'If you connect your own Canva account, we store an encrypted access token so we can send designs you choose to your Canva. You can disconnect at any time.'],
-      ['Who can see your videos', 'Only you and Marketcraft administrators. Videos are never made public.'],
+      ['Who can see your videos', 'Your practice and Studio videos are seen only by you and Marketcraft administrators. In the Showcase, a video stays private unless you choose "Community"; it is then shown to other signed-in learners only after an administrator approves it. Videos are never shown to the public internet.'],
       ['Children', 'Anyone under 18 may only use Marketcraft through a parent\'s or guardian\'s own account; we store only the child\'s first name for certificates. A parent or guardian can ask us to view or delete their child\'s data at any time.'],
       ['Ambassador Program', 'If you join the Ambassador Program, we store your referral code and the drafts you create with the AI marketing tools (your 30 most recent). The program is for account holders 18+ (kids only through a parent\'s account). Your Marketcraft login also works as a normal user account on our partner website, which has its own privacy policy.'],
       ['Your choices', 'You can ask for a copy of your data or for your account to be deleted by contacting the site administrator.'],
