@@ -10,3 +10,4 @@ service-account*.json
 .firebase/
 *.log
 client/dist-preview/
+.tools/

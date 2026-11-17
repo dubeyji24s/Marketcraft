@@ -57,6 +57,24 @@ Then set `FIREBASE_PROJECT_ID=demo-marketcraft` and `FIREBASE_AUTH_EMULATOR_HOST
 
 Tests: `npm test` covers sign-in rules plus signup → fail → retry → pass → certificate.
 
+## Share it for free from your own computer (no domain)
+
+Two scripts run the full app on your computer and give it a free public link through a [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/). You don't need an account or a domain.
+
+**On a Chromebook:** first turn on Linux: **Settings → About ChromeOS → Developers → Linux development environment → Turn on**, then open the **Terminal** app. (A school-managed Chromebook may not allow this.)
+
+```bash
+git clone https://github.com/dubeyji24s/Marketcraft.git
+cd Marketcraft
+bash scripts/setup-local.sh     # one time: installs Node 22 + packages, asks for your Firebase web config and admin email
+bash scripts/start-public.sh    # every time: prints your https://….trycloudflare.com link
+```
+
+- The link only works while the Terminal window stays open and the computer is awake. Press **Ctrl+C** to stop.
+- You get a new link each time you start it. Your data stays in `server/data/` on your computer.
+- Email/password sign-in works straight away. For **Sign in with Google**, add the link's domain under Firebase → Authentication → Settings → Authorized domains.
+- Cloudflare says quick tunnels are for testing and offers no uptime guarantee. For anything bigger, see Deploy below.
+
 ## 3. Deploy (later)
 
 No domain is needed for the school project: run it locally as above. When the project grows (and your school approves), deploy with Docker:
