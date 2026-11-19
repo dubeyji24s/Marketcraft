@@ -12,7 +12,7 @@ import { getClient, baseParams, assertNotRefused, wrapAIError, AIError } from '.
 import { checkOriginality, lessonToPlainText } from './originality.js';
 
 export const TRUSTED_DOMAINS = (process.env.RESEARCH_DOMAINS ||
-  'sba.gov,ftc.gov,score.org,hbr.org,census.gov,pewresearch.org,thinkwithgoogle.com,business.google.com,hubspot.com,mailchimp.com,shopify.com,ja.org,nfib.com,uschamber.com')
+  'sba.gov,ftc.gov,score.org,hbr.org,census.gov,pewresearch.org,thinkwithgoogle.com,business.google.com,hubspot.com,mailchimp.com,shopify.com,ja.org,nfib.com,uschamber.com,nngroup.com,usda.gov,hbs.edu')
   .split(',')
   .map((d) => d.trim())
   .filter(Boolean);

@@ -7,13 +7,14 @@ process.env.DATA_FILE = '/dev/null';
 const { CHALLENGES, LESSONS, INTERVIEWS, AMBASSADOR_MISSION, BADGES } = await import('../src/seed.js');
 const { EXTRA_LESSONS } = await import('../src/lessons-extra.js');
 const { PRO_LESSONS } = await import('../src/lessons-pro.js');
+const { MONTH_LESSONS } = await import('../src/lessons-month.js');
 const { RUBRICS } = await import('../src/ai/evaluator.js');
 const { toolCatalog } = await import('../src/ai/ambassadorTools.js');
 const { GUIDELINES, KID_RULE } = await import('../src/routes/ambassador.js');
 
 const out = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/src/preview/data.json');
 const data = {
-  lessons: [...LESSONS, ...EXTRA_LESSONS, ...PRO_LESSONS],
+  lessons: [...LESSONS, ...EXTRA_LESSONS, ...PRO_LESSONS, ...MONTH_LESSONS],
   challenges: [...CHALLENGES, AMBASSADOR_MISSION],
   interviews: INTERVIEWS,
   badges: BADGES,

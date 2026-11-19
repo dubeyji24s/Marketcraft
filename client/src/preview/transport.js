@@ -5,7 +5,7 @@ import DATA from './data.json';
 import { runStarter } from '@starter';
 import { checkRelevance, checkRequest, docText } from '@guard';
 
-const KEY = 'mc-preview-db-v7';
+const KEY = 'mc-preview-db-v8';
 const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);

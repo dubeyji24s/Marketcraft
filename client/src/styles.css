@@ -444,7 +444,8 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 6px; font-
 .designer-label { margin: 6px 0 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
 .designer-tools label, .designer-inspector label { display: grid; gap: 4px; font-weight: 600; }
 .designer-tools input[type=color], .designer-inspector input[type=color] { width: 100%; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: none; padding: 2px; }
-.designer-stage { min-width: 0; padding: 14px; border-radius: var(--radius-sm); background: repeating-conic-gradient(rgb(255 255 255 / 0.04) 0 25%, transparent 0 50%) 0 0 / 24px 24px; border: 1px solid var(--border); touch-action: none; }
+.designer-stage { min-width: 0; padding: 14px; border-radius: var(--radius-sm); background: repeating-conic-gradient(rgb(255 255 255 / 0.04) 0 25%, transparent 0 50%) 0 0 / 24px 24px; border: 1px solid var(--border); touch-action: pan-x pan-y; }
+.artboard .el, .resize-handle { touch-action: none; }
 .artboard-wrap { margin: 0 auto; position: relative; box-shadow: 0 20px 60px -20px rgb(0 0 0 / 0.7); }
 .artboard { position: absolute; left: 0; top: 0; transform-origin: 0 0; overflow: hidden; }
 .el { position: absolute; cursor: move; user-select: none; white-space: pre-wrap; overflow-wrap: break-word; }
@@ -575,3 +576,43 @@ input:focus, select:focus, textarea:focus { border-color: transparent; box-shado
 .steps { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+
+/* ---------- month plan ---------- */
+.month-plan-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+.month-weeks { display: grid; gap: 8px; }
+.month-week { border: 1px solid var(--border, rgb(127 127 127 / 0.25)); border-radius: 14px; overflow: hidden; }
+.month-week-btn { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: flex; flex-wrap: wrap; gap: 6px; justify-content: space-between; align-items: center; padding: 12px 14px; min-height: 44px; }
+.month-week-btn:focus-visible { outline: 3px solid var(--brand, #6c4cf1); outline-offset: -3px; }
+.month-week.open .month-week-btn { background: rgb(127 127 127 / 0.08); }
+.month-days { list-style: none; margin: 0; padding: 6px; display: grid; gap: 4px; }
+.month-day { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; color: inherit; text-decoration: none; min-height: 44px; }
+.month-day:hover { background: rgb(127 127 127 / 0.1); }
+.month-day.next { box-shadow: inset 0 0 0 2px var(--brand, #6c4cf1); }
+.month-day-num { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 0.85rem; background: rgb(127 127 127 / 0.15); }
+.month-day.done .month-day-num { background: var(--gradient); color: #fff; }
+.month-day-title { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.month-day-min { flex: none; }
+@media (max-width: 420px) { .month-day-min { display: none; } }
+
+/* ---------- phones: swipeable bottom menu so every item stays reachable ---------- */
+@media (max-width: 860px) {
+  .sidebar {
+    justify-content: flex-start; gap: 2px; overflow-x: auto; overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .sidebar::-webkit-scrollbar { display: none; }
+  .nav-link { flex: 1 0 64px; min-width: 64px; min-height: 48px; justify-content: center; scroll-snap-align: start; white-space: nowrap; font-size: 0.66rem; padding: 6px 4px; }
+}
+.kv { grid-template-columns: max-content minmax(0, 1fr); }
+.kv dd { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 480px) { .kv { grid-template-columns: minmax(0, 1fr); gap: 2px; } .kv dd { margin-bottom: 10px; } }
+/* long words and links never push the page sideways */
+.prose, .card { overflow-wrap: break-word; }
+img, video, canvas, svg { max-width: 100%; }
+/* phones: tabs become one swipeable row instead of wrapping */
+@media (max-width: 640px) {
+  .tabs { flex-wrap: nowrap; max-width: 100%; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; white-space: nowrap; min-height: 40px; scroll-snap-align: start; }
+}

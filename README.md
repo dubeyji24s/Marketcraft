@@ -125,6 +125,14 @@ The partner company is shown to learners only by its public label (Admin → Com
 
 Learners post their own marketing videos (upload or link) in **Showcase**. Videos are private by default, which makes them a portfolio. Choosing "Community" sends a video to **Admin → Showcase review**, and others see it only once an admin approves it. Learners can cheer 👏 each other's videos.
 
+## The marketing month
+
+The Learn page has a **30-day plan**: 36 staff lessons in 5 themed weeks (Foundations → Words, pictures & video → Get found & plan ahead → Trust & happy customers → Grow & protect), about one a day. Kid accounts skip two adult-only lessons, so they get 34. The order lives in `client/src/lib/monthPlan.js`, and `server/test/lessons.test.js` checks that every lesson is in the plan.
+
+## Works on every screen
+
+The layout is tested on 9 screen sizes, from a 320px phone through iPhone, Pixel, Galaxy, iPad and Chromebook to a 1920px desktop. On phones the bottom menu and tabs swipe sideways, and design items can be dragged with a finger. It needs an up-to-date browser: Chrome, Edge, Safari or Firefox from roughly the last three years.
+
 ## Sources
 
 Every source behind the lessons and research, with links: [docs/SOURCES.md](docs/SOURCES.md).

@@ -5,7 +5,9 @@ const files = fs.readdirSync(dir);
 const js = fs.readFileSync(`${dir}/${files.find((f) => f.endsWith('.js'))}`, 'utf8').replaceAll('</script', '<\\/script');
 const css = fs.readFileSync(`${dir}/${files.find((f) => f.endsWith('.css'))}`, 'utf8');
 fs.mkdirSync('preview', { recursive: true });
-fs.writeFileSync('preview/marketcraft-preview.html', `<title>Marketcraft</title>
+fs.writeFileSync('preview/marketcraft-preview.html', `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marketcraft</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fredoka:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Pacifico&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">

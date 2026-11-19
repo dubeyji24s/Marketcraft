@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { ErrorBox, Loading, MiniMarkdown } from '../components/common.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
+import { buildPlan } from '../lib/monthPlan.js';
 
 const RESEARCH_STEPS = ['Searching trusted sources…', 'Reading & taking notes…', 'Writing an original lesson…', 'Running the originality check…'];
 
@@ -78,6 +79,66 @@ function ResearchEngine({ onCreated }) {
   );
 }
 
+function MonthPlan({ lessons }) {
+  const plan = useMemo(() => buildPlan(lessons), [lessons]);
+  const [open, setOpen] = useState(() => plan.next ? plan.weeks.find((w) => w.days.includes(plan.next))?.week ?? 1 : 0);
+  if (plan.total === 0) return null;
+  const pct = Math.round((plan.done / plan.total) * 100);
+  return (
+    <section className="card month-plan" aria-labelledby="month-plan-title">
+      <div className="month-plan-head">
+        <div>
+          <h2 id="month-plan-title" style={{ margin: 0 }}>📅 Your marketing month</h2>
+          <p className="muted small" style={{ margin: '4px 0 0' }}>
+            {plan.total} lessons in 5 themed weeks, about one a day. Go at your own pace.
+          </p>
+        </div>
+        {plan.next ? (
+          <Link to={`/app/learn/${plan.next.lesson.id}`} className="btn btn-primary">
+            Day {plan.next.day}: start →
+          </Link>
+        ) : (
+          <span className="chip chip-success">🏆 Month complete!</span>
+        )}
+      </div>
+      <div className="row" style={{ alignItems: 'center', gap: 12, margin: '14px 0 6px' }}>
+        <div className="progress" style={{ flex: 1 }} role="progressbar" aria-valuemin={0} aria-valuemax={plan.total} aria-valuenow={plan.done} aria-label="Month progress">
+          <span style={{ width: `${pct}%` }} />
+        </div>
+        <b className="small">{plan.done}/{plan.total}</b>
+      </div>
+      {plan.next && <p className="small" style={{ margin: '0 0 10px' }}>Up next: <b>{plan.next.lesson.title}</b></p>}
+      <div className="month-weeks">
+        {plan.weeks.map((w) => {
+          const wDone = w.days.filter((d) => d.lesson.completed).length;
+          const isOpen = open === w.week;
+          return (
+            <div key={w.week} className={`month-week ${isOpen ? 'open' : ''}`}>
+              <button type="button" className="month-week-btn" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? 0 : w.week)}>
+                <span>{w.emoji} <b>Week {w.week}</b> · {w.theme}</span>
+                <span className="muted small">{wDone}/{w.days.length} {wDone === w.days.length ? '✓' : ''}</span>
+              </button>
+              {isOpen && (
+                <ol className="month-days">
+                  {w.days.map((d) => (
+                    <li key={d.day}>
+                      <Link to={`/app/learn/${d.lesson.id}`} className={`month-day ${d.lesson.completed ? 'done' : ''} ${plan.next === d ? 'next' : ''}`}>
+                        <span className="month-day-num">{d.lesson.completed ? '✓' : d.day}</span>
+                        <span className="month-day-title">{d.lesson.title}</span>
+                        <span className="muted small month-day-min">{d.lesson.estimatedMinutes} min</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function Library() {
   const { data, error, loading, setData } = useApi('/lessons');
   const navigate = useNavigate();
@@ -94,7 +155,7 @@ export function Library() {
     <div className="stack" style={{ '--gap': '22px' }}>
       <header>
         <h1>Learning Library</h1>
-        <p className="muted">Short, original lessons on marketing that costs little or nothing.</p>
+        <p className="muted">Original, well-researched lessons on marketing that costs little or nothing. Follow the month plan, or pick any lesson.</p>
       </header>
       <div className="tabs" role="tablist">
         {[['all', 'All'], ['todo', 'Not done yet'], ['mine', 'AI-researched']].map(([k, label]) => (
@@ -102,6 +163,7 @@ export function Library() {
         ))}
       </div>
       <ErrorBox error={error} />
+      {!loading && data?.lessons && <MonthPlan lessons={data.lessons} />}
       {loading ? (
         <div className="grid"><div className="skeleton" /><div className="skeleton" /><div className="skeleton" /></div>
       ) : (

@@ -61,6 +61,14 @@ export default function AppShell() {
   useEffect(() => {
     const page = NAV.find((n) => (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)));
     document.title = page && !page.end ? `${page.label} · ${APP_NAME}` : APP_NAME;
+    // On phones the bottom menu scrolls sideways: keep the current page's button in view.
+    requestAnimationFrame(() => {
+      const bar = document.querySelector('.sidebar');
+      const active = bar?.querySelector('.nav-link.active');
+      if (bar && active && bar.scrollWidth > bar.clientWidth) {
+        bar.scrollTo({ left: active.offsetLeft - (bar.clientWidth - active.offsetWidth) / 2, behavior: 'smooth' });
+      }
+    });
   }, [location.pathname]);
 
   if (status !== 'ready') return <Loading label="Loading your academy…" />;
