@@ -20,6 +20,9 @@ import Admin from './pages/Admin.jsx';
 import Cards from './pages/Cards.jsx';
 import Ideas from './pages/Ideas.jsx';
 import Review from './pages/Review.jsx';
+import Short from './pages/Short.jsx';
+import Personalize from './pages/Personalize.jsx';
+import Course from './pages/Course.jsx';
 
 function AdminOnly({ children }) {
   const user = useAuth((s) => s.user);
@@ -64,6 +67,9 @@ function App() {
           <Route path="learn/:id/cards" element={<Cards />} />
           <Route path="ideas" element={<Ideas />} />
           <Route path="review" element={<Review />} />
+          <Route path="learn/:id/short" element={<Short />} />
+          <Route path="personalize" element={<Personalize />} />
+          <Route path="course" element={<Course />} />
           <Route path="interviews" element={<Interviews />} />
           <Route path="studio" element={<StudioHome />} />
           <Route path="studio/:id" element={<ChallengeView />} />

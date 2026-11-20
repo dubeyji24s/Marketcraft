@@ -129,6 +129,15 @@ Learners post their own marketing videos (upload or link) in **Showcase**. Video
 
 The Learn page has a **30-day plan**: 36 staff lessons in 5 themed weeks (Foundations → Words, pictures & video → Get found & plan ahead → Trust & happy customers → Grow & protect), about one a day. Kid accounts skip five adult-only lessons (for example ad budgets and email lists), so they get 31. The order lives in `client/src/lib/monthPlan.js`, and `server/test/lessons.test.js` checks that every lesson is in the plan.
 
+## Personalised course (at least a month for everyone)
+
+- **Quick personalization test** right after signup (`/app/personalize`), with different questions for kids, business owners and professionals: goal, experience, interests, preferred format (shorts / swipe / read) and 15 or 30 minutes a day. It can be retaken anytime.
+- **My Course** (`/app/course`): a day-by-day plan (31 days for kids, 36 for grown-ups). The weekly structure stays the same, while focus topics move to the front of each week. Advanced learners get week-1 basics as quick reviews.
+- **Daily session (~15–30 min):** a **Short**, then the lesson (swipe or read) with a quiz, then a real-world decision, a bonus Flashback, and a **project written for your track** (`server/src/play/projects.js`; e.g. kids design a poster, owners update their Google profile, pros set up a KPI dashboard).
+- **Pacing:** one new day unlocks per calendar day, so the course always takes at least a month. Bonus activities (Flashback, Idea Board, Showcase, library) stay open.
+- **Shorts** (`/app/learn/:id/short`): an auto-playing, narrated, animated video-style version of each lesson (tap to skip, hold to pause). It uses the browser's free voice and original synthesized beats, with a different style and script for kids, owners and pros.
+- Engine: `server/src/play/course.js`, shared by the server and the preview; tested in `server/test/play.test.js`.
+
 ## Keeping learners engaged (kids and grown-ups)
 
 - **Swipe lessons**: every lesson also comes as a full-screen card feed (`/app/learn/:id/cards`): one idea per card, big visuals, tap-to-answer quiz cards and a free "🔊 Read to me" voice (the browser's own speech, nothing sent anywhere). Kids get shorter cards; adults get a ~3-minute quick mode.

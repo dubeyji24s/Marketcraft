@@ -8,7 +8,8 @@ import { Icon } from './Icon.jsx';
 
 const NAV = [
   { to: '/app', label: 'Home', icon: 'home', end: true },
-  { to: '/app/learn', label: 'Learn', icon: 'learn' },
+  { to: '/app/course', label: 'My Course', icon: 'map' },
+  { to: '/app/learn', label: 'Library', icon: 'learn' },
   { to: '/app/ideas', label: 'Ideas', icon: 'ideas' },
   { to: '/app/interviews', label: 'Interviews', icon: 'interviews' },
   { to: '/app/studio', label: 'Studio', icon: 'studio' },
@@ -83,6 +84,8 @@ export default function AppShell() {
 
   if (status !== 'ready') return <Loading label="Loading your academy…" />;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  // first visit: take the quick personalisation test (admins skip it)
+  if (!user.personal && user.role !== 'admin' && !location.pathname.startsWith('/app/personalize')) return <Navigate to="/app/personalize" replace />;
 
   const nav = [...NAV, ...(user.role === 'admin' ? [{ to: '/app/admin', label: 'Admin', icon: 'admin' }] : [])];
   const roleInfo = ROLE_INFO[user.role] ?? { label: 'Admin', emoji: '🛠️' };

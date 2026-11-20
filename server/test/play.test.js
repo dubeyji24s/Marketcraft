@@ -204,3 +204,59 @@ test('every lesson in the month plan has a valid scenario with exactly one best 
     assert.equal(sc.options.filter((o) => o.best).length, 1, `${slug} needs exactly one best option`);
   }
 });
+
+test('personalisation: different quizzes per track, profile drives the course order', async () => {
+  const course = await import('../src/play/course.js');
+  assert.notDeepEqual(course.QUIZ.kid.map((q) => q.q), course.QUIZ.pro.map((q) => q.q));
+  const kidP = course.profileFromAnswers('kid', { goal: 'sell', level: 'starter', interests: ['video', 'nope'], format: 'shorts', minutes: 15 });
+  assert.equal(kidP.track, 'kid');
+  assert.deepEqual(kidP.interests, ['video'], 'unknown answers dropped');
+  const proP = course.profileFromAnswers('professional', { goal: 'measure', level: 'advanced', interests: ['data'], format: 'read', minutes: 30 });
+  const slugs = rules.PLAN_ORDER;
+  const proOrder = course.courseOrder(proP, slugs).map((d) => d.slug);
+  assert.equal(proOrder.length, slugs.length);
+  const w5 = proOrder.slice(-8);
+  assert.ok(w5.indexOf('track-what-works') < w5.indexOf('disclose-like-a-pro'), 'focus topics come first within a week');
+});
+
+test('pacing: one new day per calendar day, so the course takes at least a month', async () => {
+  const course = await import('../src/play/course.js');
+  const lessons = rules.PLAN_ORDER.map((slug, i) => ({ id: `L${i}`, slug, title: slug, estimatedMinutes: 10, hasScenario: true }));
+  const user = { role: 'adult', completedLessons: [], scenariosDone: [], course: { days: {} }, personal: course.profileFromAnswers('adult', { level: 'starter', format: 'swipe', minutes: 15 }) };
+  const d1 = new Date('2026-12-01T10:00:00');
+  let c = course.buildCourse(user, lessons, d1);
+  assert.equal(c.total, 36);
+  assert.equal(c.current.day, 1);
+  assert.ok(c.current.minutes >= 12 && c.current.minutes <= 30, `session ${c.current.minutes} min`);
+  // finish day 1 completely
+  user.completedLessons.push(c.current.lessonId);
+  user.scenariosDone.push(c.current.lessonId);
+  for (const step of ['short', 'project']) {
+    const r = course.markStep(user, c, 1, step, d1);
+    Object.assign(user, r.patch);
+    c = course.buildCourse(user, lessons, d1);
+  }
+  assert.equal(c.days[0].doneAt, '2026-12-01');
+  assert.equal(c.days[1].unlocked, false, 'day 2 stays locked on the same day');
+  assert.equal(c.nextUnlock, 'tomorrow');
+  assert.ok(course.markStep(user, c, 2, 'short', d1).error);
+  const d2 = new Date('2026-12-02T08:00:00');
+  assert.equal(course.buildCourse(user, lessons, d2).current.day, 2, 'day 2 opens the next day');
+});
+
+test('course API: personalise, then today shows Day 1 and steps can be marked', async () => {
+  const kid = await kidClient('course-kid');
+  assert.equal((await kid('GET', '/play/today')).body.personalized, false);
+  const p = await kid('PUT', '/play/profile', { answers: { goal: 'sell', level: 'starter', interests: ['brand'], format: 'shorts', minutes: 15 } });
+  assert.equal(p.status, 200);
+  assert.equal(p.body.personal.track, 'kid');
+  assert.equal(p.body.course.total, 31, 'kids get a 31-day course');
+  const day1 = p.body.course.current;
+  assert.match(day1.project.text, /./);
+  const s = await kid('POST', `/play/course/1/step`, { step: 'short' });
+  assert.equal(s.body.course.days[0].steps.short, true);
+  assert.equal((await kid('POST', `/play/course/2/step`, { step: 'short' })).status, 400, 'day 2 locked');
+  const t = await kid('GET', '/play/today');
+  assert.equal(t.body.personalized, true);
+  assert.equal(t.body.course.current.day, 1);
+});

@@ -61,6 +61,7 @@ export const ROLE_ICONS = { kid: ['rocket', 'orange'], adult: ['store', 'teal'],
 export const CHANNEL_ICONS = { social: 'phone', 'digital-ad': 'target', outdoor: 'megaphone' };
 
 const TOPIC_RULES = [
+  [/brand|logo|colou?r|font|voice/i, 'palette'],
   [/price|pric|profit|money|cost|budget|break-even|discount/i, 'money'],
   [/photo|picture|image|camera|light/i, 'camera'],
   [/video|film|reel|youtube|abcd/i, 'studio'],
@@ -69,7 +70,6 @@ const TOPIC_RULES = [
   [/email|inbox|newsletter/i, 'mail'],
   [/social|post|instagram|hashtag|content|calendar/i, 'calendar'],
   [/customer|audience|fan|who|people|journey/i, 'users'],
-  [/brand|logo|colou?r|font|voice/i, 'palette'],
   [/rule|law|ftc|honest|truth|legal|disclos|privacy|claim/i, 'scale'],
   [/search|seo|google|found/i, 'search'],
   [/event|market|fair|stall|sign/i, 'tent'],

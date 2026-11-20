@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
         '@guard': fileURLToPath(new URL('../server/src/agents/guard.js', import.meta.url)),
         // streaks, missions, Idea Board steps and the month plan
         '@play': fileURLToPath(new URL('../server/src/play/rules.js', import.meta.url)),
+        // personalised course engine (quiz, order, pacing)
+        '@course': fileURLToPath(new URL('../server/src/play/course.js', import.meta.url)),
       },
     },
     build: preview ? { chunkSizeWarningLimit: 900, outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : { chunkSizeWarningLimit: 900 },

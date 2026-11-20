@@ -7,7 +7,8 @@ import { IconTile } from './Icon.jsx';
 export default function TodayPanel({ kid }) {
   const { data } = useApi('/play/today');
   if (!data) return <div className="skeleton" style={{ height: kid ? 260 : 120 }} />;
-  const { streak, mission, nextLesson, level } = data;
+  const { streak, mission, level, course } = data;
+  const cur = course?.current;
   const pct = Math.min(100, Math.round((level.into / level.span) * 100));
 
   const streakText = streak.count === 0
@@ -25,18 +26,16 @@ export default function TodayPanel({ kid }) {
           <IconTile name={mission.done ? 'check' : mission.icon} tone={mission.done ? 'green' : mission.tone} size={44} />
           <div><b>{mission.done ? 'Today\'s mission done' : mission.title}</b><div className="small muted">Daily mission · +{mission.xp} XP</div></div>
         </Link>
-        {nextLesson && (
-          <div className="today-cell">
-            <IconTile name="phone" tone="violet" size={44} />
-            <div style={{ minWidth: 0 }}>
-              <b className="clamp-1">Day {nextLesson.day}: {nextLesson.title}</b>
-              <div className="row small" style={{ gap: 10, marginTop: 4 }}>
-                <Link to={`/app/learn/${nextLesson.id}/cards`}>3-min swipe</Link>
-                <Link to={`/app/learn/${nextLesson.id}`}>Full read ({nextLesson.estimatedMinutes} min)</Link>
-              </div>
-            </div>
+        <Link to="/app/course" className="today-cell today-mission">
+          <IconTile name="map" tone="violet" size={44} />
+          <div style={{ minWidth: 0 }}>
+            {cur ? (
+              <><b className="clamp-1">Day {cur.day} of {course.total}: {cur.title}</b><div className="small muted">Today's session · about {cur.minutes} min</div></>
+            ) : (
+              <><b>{course?.finished ? 'Course complete!' : 'Today\'s session is done'}</b><div className="small muted">{course?.finished ? 'Great work' : 'Next day unlocks tomorrow'}</div></>
+            )}
           </div>
-        )}
+        </Link>
         <div className="today-cell">
           <IconTile name="crown" tone="amber" size={44} />
           <div style={{ flex: 1 }}>
@@ -73,8 +72,8 @@ export default function TodayPanel({ kid }) {
       </Link>
 
       <div className="kid-tiles">
-        <Link to={nextLesson ? `/app/learn/${nextLesson.id}/cards` : '/app/learn'} className="kid-tile" style={{ '--t1': '#7c5cff', '--t2': '#2bd2ff' }}>
-          <IconTile name="phone" tone="violet" size={50} className="kid-tile-icon" /><b>Swipe & learn</b><small>{nextLesson ? `Day ${nextLesson.day}` : 'All done!'}</small>
+        <Link to="/app/course" className="kid-tile" style={{ '--t1': '#7c5cff', '--t2': '#2bd2ff' }}>
+          <IconTile name="map" tone="violet" size={50} className="kid-tile-icon" /><b>Today's adventure</b><small>{cur ? `Day ${cur.day} · ${cur.minutes} min` : course?.finished ? 'All done!' : 'Done today! Back tomorrow'}</small>
         </Link>
         <Link to="/app/ideas" className="kid-tile" style={{ '--t1': '#ff9f1c', '--t2': '#ff5f8f' }}>
           <IconTile name="ideas" tone="amber" size={50} className="kid-tile-icon" /><b>My Idea Board</b><small>{data.ideas ? `${data.ideas} idea${data.ideas === 1 ? '' : 's'}` : 'Dream it up'}</small>

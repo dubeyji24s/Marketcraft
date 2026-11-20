@@ -54,8 +54,8 @@ export function Landing() {
     { icon: 'ambassador', tone: 'blue', title: 'Certificates & Ambassador', text: 'Earn verifiable certificates. Graduates 18+ unlock the Marketing Lab with six AI tools, Creator, design and video.' },
   ];
   const steps = [
-    ['Learn', 'Bite-sized lessons on marketing that costs little or nothing.'],
-    ['Watch', 'Interviews with owners who grew on a shoestring.'],
+    ['Personalize', 'A 1-minute test builds your own course: different for kids, business owners and pros.'],
+    ['Learn daily', 'Shorts, swipe lessons, real decisions and a project, 15–30 minutes a day for a month or more.'],
     ['Practice', 'Film a pitch for a real product challenge.'],
     ['Get certified', 'Reach the professional standard (85%+) with the AI coach. Retry until you do.'],
     ['Become an ambassador', 'Graduates 18+ join and their Marketing Lab opens: every tool works, but only to market our partner website.'],
@@ -203,7 +203,7 @@ export function Login() {
   }
 
   return (
-    <AuthFrame title="Welcome back 👋" subtitle="Log in to keep building your marketing skills.">
+    <AuthFrame title="Welcome back" subtitle="Log in to keep building your marketing skills.">
       <ErrorBox error={error} />
       {authProvider.isPreview && (
         <div className="alert alert-info">
@@ -340,7 +340,7 @@ export function Signup() {
   }
 
   return (
-    <AuthFrame title={`Join ${APP_NAME}`} subtitle="Choose your path. Your dashboard theme changes to match!">
+    <AuthFrame title={`Join ${APP_NAME}`} subtitle="Choose your path. Next, a 1-minute personalization test designs a course just for you.">
       <ErrorBox error={error} />
       <form onSubmit={(e) => { e.preventDefault(); run(() => signup({ email: form.email, password: form.password, ...pickProfile(form) })); }} noValidate>
         <ProfileFields form={form} setForm={setForm} />
@@ -396,7 +396,7 @@ export function Onboarding() {
   }
 
   return (
-    <AuthFrame title="One last step ✨" subtitle={`Set up your learner profile for ${pendingProfile.email ?? 'your account'}.`}>
+    <AuthFrame title="One last step" subtitle={`Set up your learner profile for ${pendingProfile.email ?? 'your account'}. Next comes a 1-minute personalization test.`}>
       <ErrorBox error={error} />
       <form onSubmit={submit} noValidate>
         <ProfileFields form={form} setForm={setForm} accountWord={`account (${pendingProfile.email ?? 'this login'})`} />

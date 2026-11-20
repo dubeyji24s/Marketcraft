@@ -7,6 +7,7 @@ import { requireAuth } from '../auth.js';
 import { reward, activity } from '../progress.js';
 import { todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, dayKey, flashbackPicks } from '../play/rules.js';
 import { SCENARIOS } from '../lessons-scenarios.js';
+import { buildCourse, markStep, closeCompletedDays, profileFromAnswers } from '../play/course.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -21,13 +22,63 @@ function nextLesson(u) {
   return l ? { id: l.id, title: l.title, estimatedMinutes: l.estimatedMinutes, day: PLAN_ORDER.filter((s) => bySlug.has(s)).indexOf(l.slug) + 1 } : null;
 }
 
-router.get('/today', (req, res) => {
+/** The learner's personalised course (closes any day whose steps were finished elsewhere). */
+export async function courseFor(user) {
+  const lessons = db.all('lessons', visibleLesson(user)).filter((l) => l.slug).map((l) => ({ id: l.id, slug: l.slug, title: l.title, estimatedMinutes: l.estimatedMinutes, hasScenario: Boolean(SCENARIOS[l.slug]) }));
+  let course = buildCourse(user, lessons);
+  const patch = closeCompletedDays(user, course);
+  if (patch) {
+    const before = course.done;
+    await db.update('users', user.id, patch);
+    course = buildCourse(user, lessons);
+    await rewardDays(user, course, course.done - before);
+  }
+  return course;
+}
+async function rewardDays(user, course, newlyDone) {
+  if (newlyDone <= 0) return [];
+  return reward(user, { xp: 25 * newlyDone, badges: course.finished ? ['course-complete'] : [] });
+}
+
+// ---- personalisation test + course ---------------------------------------------------------
+router.put('/profile', async (req, res) => {
+  const answers = req.body?.answers;
+  if (!answers || typeof answers !== 'object') return res.status(400).json({ error: 'Answer the quick questions first.' });
+  const personal = { ...profileFromAnswers(req.user.role, answers), takenAt: new Date().toISOString() };
+  await db.update('users', req.user.id, { personal, course: req.user.course ?? { startedAt: dayKey(), days: {} } });
+  res.json({ personal, course: await courseFor(req.user) });
+});
+
+router.get('/course', async (req, res) => {
+  res.json({ course: await courseFor(req.user) });
+});
+
+router.post('/course/:day/step', async (req, res) => {
+  const course = await courseFor(req.user);
+  const r = markStep(req.user, course, Number(req.params.day), String(req.body?.step ?? ''));
+  if (r.error) return res.status(400).json({ error: r.error });
+  await db.update('users', req.user.id, r.patch);
+  const after = await courseFor(req.user);
+  let newBadges = [];
+  let play = null;
+  if (r.justFinished) {
+    newBadges = await rewardDays(req.user, after, 1);
+    play = await activity(req.user, 'course');
+    newBadges = [...newBadges, ...play.newBadges];
+  }
+  res.json({ course: after, dayFinished: r.justFinished, xpEarned: r.justFinished ? 25 : 0, newBadges, play });
+});
+
+router.get('/today', async (req, res) => {
   const u = req.user;
   const lvl = levelInfo(u.xp);
+  const course = await courseFor(u);
   res.json({
     ...todaySummary(u),
     level: { ...lvl, title: levelTitle(u.role, lvl.level) },
     nextLesson: nextLesson(u),
+    personalized: Boolean(u.personal),
+    course: { total: course.total, done: course.done, nextUnlock: course.nextUnlock, finished: course.finished, current: course.current && { day: course.current.day, title: course.current.title, minutes: course.current.minutes, lessonId: course.current.lessonId } },
     cardsDone: u.cardsDone?.length ?? 0,
     ideas: db.all('ideas', (i) => i.userId === u.id).length,
   });
@@ -86,6 +137,11 @@ router.post('/review/done', async (req, res) => {
   await db.update('users', req.user.id, { reviewLast: today, reviewDays: days });
   const newBadges = await reward(req.user, { xp: 10, badges: days >= 5 ? ['flashback'] : [] });
   const play = await activity(req.user, 'review');
+  const course = await courseFor(req.user);
+  if (course.current) {
+    const r = markStep(req.user, course, course.current.day, 'review');
+    if (!r.error) await db.update('users', req.user.id, r.patch);
+  }
   res.json({ xpEarned: 10, newBadges: [...newBadges, ...play.newBadges], play });
 });
 

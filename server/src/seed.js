@@ -19,6 +19,7 @@ export const BADGES = {
   swiper: { label: 'Quick Learner', emoji: '📱', description: 'Finished 5 swipe lessons' },
   decider: { label: 'Decision Maker', emoji: '🧭', description: 'Solved 10 real-world scenarios' },
   flashback: { label: 'Memory Master', emoji: '🔁', description: 'Did the daily Flashback on 5 different days' },
+  'course-complete': { label: 'Course Graduate', emoji: '🎓', description: 'Finished every day of your personal Marketcraft course' },
   medal: { label: 'Marketcraft Medal', emoji: '🥇', description: 'Junior whose marketing video reached 1,000 views' },
 };
 

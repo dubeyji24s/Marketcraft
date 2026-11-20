@@ -4,9 +4,10 @@
 import DATA from './data.json';
 import { runStarter } from '@starter';
 import { checkRelevance, checkRequest, docText } from '@guard';
+import { buildCourse, markStep, closeCompletedDays, profileFromAnswers } from '@course';
 import { applyActivity, todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, MEDAL_VIEWS, dayKey, flashbackPicks } from '@play';
 
-const KEY = 'mc-preview-db-v9';
+const KEY = 'mc-preview-db-v10';
 const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
@@ -23,7 +24,7 @@ function seed() {
     stamp({ uid: 'demo-adult', email: 'learner@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Ava Learner', role: 'adult', adultConfirmedAt: t, xp: 0, badges: [], completedLessons: [] }),
     stamp({ uid: 'demo-kid', email: 'parent@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Leo', role: 'kid', ageGroup: 'under13', accountHolder: 'parent', parentName: 'Sam', guardianEmail: 'parent@preview.marketcraft', xp: 0, badges: [], completedLessons: [] }),
   ];
-  const grad = stamp({ uid: 'demo-grad', email: 'graduate@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Jordan Graduate', role: 'professional', adultConfirmedAt: t, xp: 420, badges: ['first-lesson', 'first-pitch', 'certified', 'ambassador', 'brand-certified'], completedLessons: [], ambassador: { code: 'GRAD2026', joinedAt: t }, lab: { brand: { name: 'Bright Scarves Co.', website: '', tagline: 'Cozy handmade scarves for every season', description: 'Hand-knitted wool and cotton scarves made in small batches.', products: 'Wool scarf $28\nCotton summer scarf $22', audience: 'Gift shoppers and people who love handmade goods', keyMessages: 'Handmade, soft, made to last', offers: '', voice: 'Warm and friendly', dos: '', donts: '', hashtags: '#BrightScarves' } } });
+  const grad = stamp({ uid: 'demo-grad', email: 'graduate@preview.marketcraft', emailVerified: true, provider: 'password', name: 'Jordan Graduate', role: 'professional', adultConfirmedAt: t, xp: 420, badges: ['first-lesson', 'first-pitch', 'certified', 'ambassador', 'brand-certified'], completedLessons: [], ambassador: { code: 'GRAD2026', joinedAt: t }, personal: { ...profileFromAnswers('professional', { business: 'founder', level: 'growing', goal: 'creative', interests: ['social'], format: 'swipe', minutes: 15 }), takenAt: t }, lab: { brand: { name: 'Bright Scarves Co.', website: '', tagline: 'Cozy handmade scarves for every season', description: 'Hand-knitted wool and cotton scarves made in small batches.', products: 'Wool scarf $28\nCotton summer scarf $22', audience: 'Gift shoppers and people who love handmade goods', keyMessages: 'Handmade, soft, made to last', offers: '', voice: 'Warm and friendly', dos: '', donts: '', hashtags: '#BrightScarves' } } });
   users.push(grad);
   const challenges = DATA.challenges.map((c) => stamp(c));
   const missionC = challenges.find((c) => c.kind === 'ambassador');
@@ -438,8 +439,45 @@ on('GET', '/ambassador/roster', () => {
 
 // ---- play: today, swipe lessons, Idea Board ------------------------------------------
 const lessonVisibleToRole = (u) => (l) => l.published && (u.role === 'admin' || !l.audiences || l.audiences.includes(u.role));
+function courseFor(u) {
+  const lessons = db().lessons.filter(lessonVisibleToRole(u)).filter((l) => l.slug).map((l) => ({ id: l.id, slug: l.slug, title: l.title, estimatedMinutes: l.estimatedMinutes, hasScenario: Boolean(DATA.scenarios?.[l.slug]) }));
+  let c = buildCourse(u, lessons);
+  const patch = closeCompletedDays(u, c);
+  if (patch) {
+    const before = c.done;
+    Object.assign(u, patch);
+    c = buildCourse(u, lessons);
+    reward(u, 25 * (c.done - before), c.finished ? ['course-complete'] : []);
+  }
+  return c;
+}
+on('PUT', '/play/profile', (_, body) => {
+  const u = need();
+  if (!body.answers) fail(400, 'Answer the quick questions first.');
+  u.personal = { ...profileFromAnswers(u.role, body.answers), takenAt: now() };
+  u.course ??= { startedAt: dayKey(), days: {} };
+  return { personal: u.personal, course: courseFor(u) };
+});
+on('GET', '/play/course', () => ({ course: courseFor(need()) }));
+on('POST', '/play/course/:day/step', ({ day }, body) => {
+  const u = need();
+  const c = courseFor(u);
+  const r = markStep(u, c, Number(day), String(body.step ?? ''));
+  if (r.error) fail(400, r.error);
+  Object.assign(u, r.patch);
+  const after = courseFor(u);
+  let newBadges = [];
+  let play = null;
+  if (r.justFinished) {
+    newBadges = reward(u, 25, after.finished ? ['course-complete'] : []);
+    play = activity(u, 'course');
+    newBadges = [...newBadges, ...play.newBadges];
+  }
+  return { course: after, dayFinished: r.justFinished, xpEarned: r.justFinished ? 25 : 0, newBadges, play };
+});
 on('GET', '/play/today', () => {
   const u = need();
+  const course = courseFor(u);
   const lessons = db().lessons.filter(lessonVisibleToRole(u));
   const bySlug = new Map(lessons.map((l) => [l.slug, l]));
   const order = PLAN_ORDER.filter((s) => bySlug.has(s));
@@ -450,6 +488,8 @@ on('GET', '/play/today', () => {
     ...todaySummary(u),
     level: { ...lvl, title: levelTitle(u.role, lvl.level) },
     nextLesson: l ? { id: l.id, title: l.title, estimatedMinutes: l.estimatedMinutes, day: order.indexOf(nextSlug) + 1 } : null,
+    personalized: Boolean(u.personal),
+    course: { total: course.total, done: course.done, nextUnlock: course.nextUnlock, finished: course.finished, current: course.current && { day: course.current.day, title: course.current.title, minutes: course.current.minutes, lessonId: course.current.lessonId } },
     cardsDone: u.cardsDone?.length ?? 0,
     ideas: (db().ideas ?? []).filter((i) => i.userId === u.id).length,
   };
@@ -537,6 +577,8 @@ on('POST', '/play/review/done', () => {
   u.reviewDays = (u.reviewDays ?? 0) + 1;
   const newBadges = reward(u, 10, u.reviewDays >= 5 ? ['flashback'] : []);
   const play = activity(u, 'review');
+  const c = courseFor(u);
+  if (c.current) { const m = markStep(u, c, c.current.day, 'review'); if (!m.error) Object.assign(u, m.patch); }
   return { xpEarned: 10, newBadges: [...newBadges, ...play.newBadges], play };
 });
 
