@@ -1,10 +1,11 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { ErrorBox, CHANNEL_INFO, ConfirmButton } from '../components/common.jsx';
 import { VideoPlayer } from './Interviews.jsx';
 import { useUI } from '../store/ui.js';
 import { useAuth } from '../store/auth.js';
+import { announcePlay } from '../lib/play.js';
 
 const STATUS = {
   pending: { label: '⏳ Waiting for review', cls: '' },
@@ -101,11 +102,35 @@ function UploadForm({ onPosted }) {
   );
 }
 
+/** Counts a view once the video has been on screen for 3 seconds (unique per viewer on the server). */
+function useViewCounter(item, ref, onViews) {
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || item.mine || item.status !== 'approved' || item.visibility !== 'community') return undefined;
+    let timer = null;
+    let sent = false;
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting && !sent) {
+        timer = setTimeout(async () => {
+          sent = true;
+          io.disconnect();
+          try { onViews((await api.post(`/showcase/${item.id}/view`)).views); } catch { /* ignore */ }
+        }, 3000);
+      } else clearTimeout(timer);
+    }, { threshold: 0.5 });
+    io.observe(el);
+    return () => { clearTimeout(timer); io.disconnect(); };
+  }, [item.id]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 function VideoCard({ item, onChange, onDelete }) {
   const toast = useUI((s) => s.toast);
+  const ref = useRef(null);
+  useViewCounter(item, ref, (views) => onChange({ ...item, views }));
   async function cheer() {
     try {
       const r = await api.post(`/showcase/${item.id}/cheer`);
+      announcePlay(r.play);
       onChange(r.item);
     } catch (e) {
       toast(e.message, 'error');
@@ -117,7 +142,7 @@ function VideoCard({ item, onChange, onDelete }) {
     if (visibility === 'community' && r.item.status === 'pending') toast('Sent for review. It goes live once an admin approves it.', 'success');
   }
   return (
-    <article className="card">
+    <article className="card" ref={ref}>
       {(item.videoSrc || item.embedUrl) ? (
         <VideoPlayer videoSrc={item.videoSrc} embedUrl={item.embedUrl} title={item.title} />
       ) : (
@@ -127,7 +152,7 @@ function VideoCard({ item, onChange, onDelete }) {
         <h3 style={{ margin: 0 }}>{item.title}</h3>
         <button className={`btn btn-sm ${item.cheeredByMe ? 'btn-primary' : ''}`} onClick={cheer} aria-pressed={item.cheeredByMe} aria-label="Cheer this video">👏 {item.cheers}</button>
       </div>
-      <p className="muted small" style={{ margin: '4px 0 8px' }}>{item.ownerName}{item.ownerRole ? ` · ${item.ownerRole}` : ''} · {CHANNEL_INFO[item.channel]?.emoji} {CHANNEL_INFO[item.channel]?.label}</p>
+      <p className="muted small" style={{ margin: '4px 0 8px' }}>{item.ownerName}{item.ownerRole ? ` · ${item.ownerRole}` : ''} · {CHANNEL_INFO[item.channel]?.emoji} {CHANNEL_INFO[item.channel]?.label} · 👁 {item.views ?? 0} view{item.views === 1 ? '' : 's'}</p>
       {item.description && <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{item.description}</p>}
       {item.tags?.length > 0 && <div className="row" style={{ gap: 6 }}>{item.tags.map((t) => <span key={t} className="chip">#{t}</span>)}</div>}
       {item.mine && (
@@ -150,6 +175,7 @@ function VideoCard({ item, onChange, onDelete }) {
 
 export default function Showcase() {
   const [tab, setTab] = useState('community');
+  const kid = useAuth((s) => s.user?.role === 'kid');
   const { data, error, loading, setData, reload } = useApi(`/showcase${tab === 'mine' ? '?scope=mine' : ''}`);
   const items = data?.items ?? [];
 
@@ -186,6 +212,7 @@ export default function Showcase() {
           )}
         </div>
         <aside className="stack" style={{ '--gap': '18px' }}>
+          {kid && <MedalPanel />}
           <UploadForm onPosted={() => (tab === 'mine' ? reload() : setTab('mine'))} />
           <div className="card small">
             <h3>📏 Community guidelines</h3>
@@ -233,6 +260,159 @@ export function ShowcaseReview() {
                 <button className="btn btn-sm btn-primary" onClick={() => review(it.id, 'approved')}>Approve</button>
                 <button className="btn btn-sm btn-danger" onClick={() => review(it.id, 'rejected')}>Reject</button>
               </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---- junior medal --------------------------------------------------------------------------
+function MedalPanel() {
+  const { data, reload } = useApi('/showcase/medal/status');
+  const [claiming, setClaiming] = useState(false);
+  if (!data) return null;
+  const { threshold, videos, claim } = data;
+  const best = videos[0];
+  const pct = best ? Math.min(100, Math.round((best.views / threshold) * 100)) : 0;
+  const statusText = {
+    requested: '📬 Request received! A Marketcraft admin is checking it.',
+    approved: '✅ Approved! Your medal is being prepared.',
+    shipped: '🎉 Your medal is on its way! (We deleted your address after posting it.)',
+    declined: '✋ This request wasn\'t approved.',
+  };
+  return (
+    <div className="card medal-card">
+      <div className="medal-head">
+        <span className="medal-icon" aria-hidden>🥇</span>
+        <div>
+          <h3 style={{ margin: 0 }}>Win a real medal!</h3>
+          <p className="small" style={{ margin: '2px 0 0' }}>When one of your marketing videos reaches <b>{threshold.toLocaleString()} views</b>, we'll post you a free Marketcraft Medal.</p>
+        </div>
+      </div>
+      {claim && claim.status !== 'declined' ? (
+        <p className="small" style={{ marginBottom: 0 }}><b>{statusText[claim.status]}</b>{claim.note ? ` Note: ${claim.note}` : ''}</p>
+      ) : (
+        <>
+          {claim?.status === 'declined' && <p className="small">{statusText.declined}{claim.note ? ` Note: ${claim.note}` : ''} You can try again.</p>}
+          {best ? (
+            <>
+              <div className="row spread small" style={{ fontWeight: 700 }}><span className="clamp-1">{best.title}</span><span>{best.views.toLocaleString()} / {threshold.toLocaleString()}</span></div>
+              <div className="progress medal-progress"><span style={{ width: `${pct}%` }} /></div>
+              <p className="small muted" style={{ margin: '6px 0 0' }}>Views count once per Marketcraft member. Got 1,000 views somewhere else (like YouTube)? A parent can ask us to check.</p>
+            </>
+          ) : (
+            <p className="small muted">Share a video with the community (an admin approves it first) to start counting views.</p>
+          )}
+          {videos.length > 0 && (claiming
+            ? <MedalClaimForm videos={videos} threshold={threshold} onDone={() => { setClaiming(false); reload(); }} onCancel={() => setClaiming(false)} />
+            : <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => setClaiming(true)}>{best && best.views >= threshold ? '🥇 Claim my medal' : 'Parent: claim with views from another site'}</button>)}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MedalClaimForm({ videos, threshold, onDone, onCancel }) {
+  const eligible = videos.filter((v) => v.views >= threshold);
+  const [f, setF] = useState({ showcaseId: (eligible[0] ?? videos[0]).id, source: eligible.length ? 'marketcraft' : 'external', externalUrl: '', externalViews: '', parentConfirm: false, recipientName: '', line1: '', line2: '', city: '', region: '', postalCode: '', country: '' });
+  const [error, setError] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const { recipientName, line1, line2, city, region, postalCode, country, externalViews, ...rest } = f;
+      await api.post('/showcase/medal/claim', { ...rest, ...(f.source === 'external' ? { externalViews: Number(externalViews) } : { externalUrl: '' }), shipping: { recipientName, line1, line2, city, region, postalCode, country } });
+      useUI.getState().toast('Medal request sent! 🥇', 'success');
+      onDone();
+    } catch (err) {
+      setError(err);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form className="stack medal-form" style={{ '--gap': '10px', marginTop: 12 }} onSubmit={submit}>
+      <p className="small" style={{ margin: 0 }}><b>👪 For a parent or guardian to fill in.</b> We use this address only to post the medal, show it only to the Marketcraft admin, and delete it as soon as the medal is sent.</p>
+      <ErrorBox error={error} />
+      <label className="field"><span>Video</span>
+        <select value={f.showcaseId} onChange={set('showcaseId')}>{videos.map((v) => <option key={v.id} value={v.id}>{v.title} ({v.views} views here)</option>)}</select></label>
+      <div className="segmented" role="radiogroup" aria-label="Where did it get its views?">
+        <button type="button" role="radio" aria-checked={f.source === 'marketcraft'} className="choice" onClick={() => setF({ ...f, source: 'marketcraft' })}><b>On Marketcraft</b></button>
+        <button type="button" role="radio" aria-checked={f.source === 'external'} className="choice" onClick={() => setF({ ...f, source: 'external' })}><b>On another site</b></button>
+      </div>
+      {f.source === 'external' && (
+        <div className="row" style={{ alignItems: 'flex-start' }}>
+          <label className="field" style={{ flex: '2 1 200px' }}><span>Link to the video</span><input type="url" required placeholder="https://…" value={f.externalUrl} onChange={set('externalUrl')} /></label>
+          <label className="field" style={{ flex: '1 1 120px' }}><span>Views</span><input type="number" min={threshold} required value={f.externalViews} onChange={set('externalViews')} /></label>
+        </div>
+      )}
+      <label className="field"><span>Parent or guardian's name</span><input required maxLength={80} autoComplete="name" value={f.recipientName} onChange={set('recipientName')} /></label>
+      <label className="field"><span>Street address</span><input required maxLength={120} autoComplete="address-line1" value={f.line1} onChange={set('line1')} /></label>
+      <label className="field"><span>Apartment, unit (optional)</span><input maxLength={120} autoComplete="address-line2" value={f.line2} onChange={set('line2')} /></label>
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        <label className="field" style={{ flex: '1 1 140px' }}><span>City / town</span><input required maxLength={60} autoComplete="address-level2" value={f.city} onChange={set('city')} /></label>
+        <label className="field" style={{ flex: '1 1 140px' }}><span>State / region</span><input maxLength={60} autoComplete="address-level1" value={f.region} onChange={set('region')} /></label>
+      </div>
+      <div className="row" style={{ alignItems: 'flex-start' }}>
+        <label className="field" style={{ flex: '1 1 120px' }}><span>Postal / ZIP code</span><input required maxLength={20} autoComplete="postal-code" value={f.postalCode} onChange={set('postalCode')} /></label>
+        <label className="field" style={{ flex: '1 1 140px' }}><span>Country</span><input required maxLength={60} autoComplete="country-name" value={f.country} onChange={set('country')} /></label>
+      </div>
+      <label className="checkbox"><input type="checkbox" checked={f.parentConfirm} onChange={set('parentConfirm')} /> <span>I'm this child's parent or guardian, and I agree to share this address only so Marketcraft can post the medal.</span></label>
+      <div className="row">
+        <button className="btn btn-primary btn-sm" disabled={busy || !f.parentConfirm}>{busy ? <span className="spinner" /> : 'Send request'}</button>
+        <button type="button" className="btn btn-sm btn-ghost" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
+  );
+}
+
+/** Admin: medal requests (addresses are deleted automatically once marked shipped or declined). */
+export function MedalClaims() {
+  const { data, error, reload } = useApi('/showcase/medal/claims');
+  const toast = useUI((s) => s.toast);
+  const [notes, setNotes] = useState({});
+  async function act(id, status) {
+    try {
+      await api.post(`/showcase/medal/claims/${id}`, { status, note: notes[id] ?? '' });
+      toast(status === 'shipped' ? 'Marked as shipped. The address has been deleted.' : `Marked ${status}.`, 'success');
+      reload();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+  if (error) return <ErrorBox error={error} />;
+  const claims = data?.claims ?? [];
+  return (
+    <div className="card">
+      <h2>🥇 Medal requests ({claims.filter((c) => c.status === 'requested' || c.status === 'approved').length} open)</h2>
+      <p className="muted small">Juniors whose video reached {data?.threshold?.toLocaleString() ?? '1,000'} views. Check the video (and for other sites, the view count at the link), then approve, post the medal, and mark it shipped. Marking shipped or declined deletes the home address.</p>
+      {claims.length === 0 ? <p className="muted">No medal requests yet.</p> : (
+        <div className="grid" style={{ '--min': '300px' }}>
+          {claims.map((c) => (
+            <div key={c.id} className="out-card small">
+              <div className="row spread"><b>{c.learner}</b><span className="chip">{c.status}</span></div>
+              <p style={{ margin: '6px 0' }}>Video: {c.showcaseTitle ?? '(deleted)'} · {Number(c.views).toLocaleString()} views {c.source === 'external' ? <>on <a href={c.externalUrl} target="_blank" rel="noopener noreferrer">another site ↗</a> (check it)</> : 'on Marketcraft'}</p>
+              {c.shipTo ? (
+                <address style={{ fontStyle: 'normal', whiteSpace: 'pre-line', background: 'var(--surface)', padding: 8, borderRadius: 8 }}>
+                  {[c.shipTo.recipientName, c.shipTo.line1, c.shipTo.line2, [c.shipTo.city, c.shipTo.region, c.shipTo.postalCode].filter(Boolean).join(', '), c.shipTo.country].filter(Boolean).join('\n')}
+                </address>
+              ) : <p className="muted">Address deleted{c.shippedAt ? ` (shipped ${new Date(c.shippedAt).toLocaleDateString()})` : ''}.</p>}
+              {c.contactEmail && <p className="muted" style={{ margin: '6px 0' }}>Parent account: {c.contactEmail}</p>}
+              {(c.status === 'requested' || c.status === 'approved') && (
+                <>
+                  <input type="text" aria-label="Note" placeholder="Note for the family (optional)" value={notes[c.id] ?? ''} onChange={(e) => setNotes({ ...notes, [c.id]: e.target.value })} style={{ margin: '6px 0' }} />
+                  <div className="row">
+                    {c.status === 'requested' && <button className="btn btn-sm btn-primary" onClick={() => act(c.id, 'approved')}>Approve</button>}
+                    <button className="btn btn-sm" onClick={() => act(c.id, 'shipped')}>Mark shipped</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => act(c.id, 'declined')}>Decline</button>
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>

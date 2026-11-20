@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { requireAuth, requireAdmin } from '../auth.js';
 import { generateLesson } from '../ai/research.js';
-import { reward } from '../progress.js';
+import { reward, activity } from '../progress.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -46,7 +46,8 @@ router.post('/:id/complete', async (req, res) => {
       badges: ['first-lesson', ...(perfect ? ['quiz-ace'] : [])],
     });
   }
-  res.json({ results, correct, total: results.length, xpEarned: firstTime ? 20 + correct * 10 : 0, newBadges });
+  const play = await activity(req.user, 'lesson');
+  res.json({ results, correct, total: results.length, xpEarned: firstTime ? 20 + correct * 10 : 0, newBadges: [...newBadges, ...play.newBadges], play });
 });
 
 // ---- AI Research Engine ----------------------------------------------------

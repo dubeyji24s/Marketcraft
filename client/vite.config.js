@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => {
         '@starter': fileURLToPath(new URL('../server/src/ai/starter.js', import.meta.url)),
         // the Partner Guard rules run instantly in the browser too (0 tokens)
         '@guard': fileURLToPath(new URL('../server/src/agents/guard.js', import.meta.url)),
+        // streaks, missions, Idea Board steps and the month plan
+        '@play': fileURLToPath(new URL('../server/src/play/rules.js', import.meta.url)),
       },
     },
     build: preview ? { chunkSizeWarningLimit: 900, outDir: 'dist-preview', assetsInlineLimit: 100_000_000, cssCodeSplit: false, modulePreload: false } : { chunkSizeWarningLimit: 900 },

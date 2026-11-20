@@ -6,7 +6,8 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { requireAuth, requireAdmin, ROLE_LABELS } from '../auth.js';
 import { videoUpload, uploadPath, removeUpload, toEmbedUrl } from '../uploads.js';
-import { reward } from '../progress.js';
+import { reward, activity } from '../progress.js';
+import { MEDAL_VIEWS } from '../play/rules.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -34,6 +35,7 @@ function serialize(item, user) {
     embedUrl: item.videoUrl ? toEmbedUrl(item.videoUrl) : null,
     videoUrl: item.videoUrl,
     cheers: item.cheers?.length ?? 0,
+    views: item.viewers?.length ?? 0,
     cheeredByMe: Boolean(item.cheers?.includes(user.id)),
   };
 }
@@ -89,7 +91,8 @@ router.post('/', postLimiter, upload.single('video'), async (req, res) => {
     cheers: [],
   });
   const newBadges = await reward(req.user, { xp: 20, badges: ['showcase'] });
-  res.status(201).json({ item: serialize(item, req.user), newBadges });
+  const play = await activity(req.user, 'showcase');
+  res.status(201).json({ item: serialize(item, req.user), newBadges: [...newBadges, ...play.newBadges], play });
 });
 
 router.patch('/:id', async (req, res) => {
@@ -116,8 +119,123 @@ router.post('/:id/cheer', async (req, res) => {
   const item = db.get('showcase', req.params.id);
   if (!item || !isVisible(item, req.user)) return res.status(404).json({ error: 'Video not found.' });
   const cheers = new Set(item.cheers ?? []);
-  cheers.has(req.user.id) ? cheers.delete(req.user.id) : cheers.add(req.user.id);
-  res.json({ item: serialize(await db.update('showcase', item.id, { cheers: [...cheers] }), req.user) });
+  const adding = !cheers.has(req.user.id);
+  adding ? cheers.add(req.user.id) : cheers.delete(req.user.id);
+  const play = adding && item.userId !== req.user.id ? await activity(req.user, 'showcase') : null;
+  res.json({ item: serialize(await db.update('showcase', item.id, { cheers: [...cheers] }), req.user), play });
+});
+
+// ---- views (unique signed-in viewers, never the owner) ------------------------------------
+router.post('/:id/view', async (req, res) => {
+  const item = db.get('showcase', req.params.id);
+  if (!item || !isVisible(item, req.user)) return res.status(404).json({ error: 'Video not found.' });
+  const viewers = item.viewers ?? [];
+  const counts = item.visibility === 'community' && item.status === 'approved' && item.userId !== req.user.id && !viewers.includes(req.user.id);
+  if (counts) await db.update('showcase', item.id, { viewers: [...viewers, req.user.id] });
+  res.json({ views: (item.viewers ?? viewers).length });
+});
+
+// ---- junior medal ------------------------------------------------------------------------
+// Juniors (kid accounts, run by a parent) whose marketing video reaches 1,000 views can ask
+// for a free medal posted home. The parent enters the address; an admin checks the claim and
+// posts the medal; the address is deleted as soon as the medal ships or the claim is declined.
+const ACTIVE = ['requested', 'approved', 'shipped'];
+const myClaim = (userId) => db.all('medals', (m) => m.userId === userId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+const claimOut = (m, admin = false) =>
+  m && {
+    id: m.id,
+    status: m.status,
+    source: m.source,
+    showcaseId: m.showcaseId,
+    showcaseTitle: db.get('showcase', m.showcaseId)?.title ?? null,
+    views: m.views,
+    externalUrl: m.externalUrl,
+    note: m.note ?? null,
+    createdAt: m.createdAt,
+    shippedAt: m.shippedAt ?? null,
+    // the full address is only ever shown to admins, and only until the medal ships
+    shipTo: admin ? m.shipping ?? null : m.shipping ? { city: m.shipping.city, country: m.shipping.country } : null,
+    ...(admin ? { learner: db.get('users', m.userId)?.name ?? 'Former learner', parentName: db.get('users', m.userId)?.parentName ?? null, contactEmail: db.get('users', m.userId)?.email ?? null } : {}),
+  };
+
+router.get('/medal/status', (req, res) => {
+  const junior = req.user.role === 'kid';
+  const videos = db
+    .all('showcase', (i) => i.userId === req.user.id && i.visibility === 'community' && i.status === 'approved')
+    .map((i) => ({ id: i.id, title: i.title, views: i.viewers?.length ?? 0 }))
+    .sort((a, b) => b.views - a.views);
+  res.json({ junior, threshold: MEDAL_VIEWS, videos, claim: claimOut(myClaim(req.user.id)) });
+});
+
+const medalLimiter = rateLimit({ windowMs: 24 * 60 * 60 * 1000, limit: 5, keyGenerator: (req) => req.user.id, message: { error: 'Too many medal requests today. Try again tomorrow.' } });
+const line = (min, max, msg) => z.string().trim().min(min, msg).max(max);
+const ClaimSchema = z.object({
+  showcaseId: z.string().min(1, 'Choose the video that reached 1,000 views.'),
+  source: z.enum(['marketcraft', 'external']),
+  externalUrl: z.string().trim().url().refine((u) => u.startsWith('https://'), 'The link must start with https://').optional().or(z.literal('')),
+  externalViews: z.coerce.number().int().min(0).max(1_000_000_000).optional(),
+  parentConfirm: z.literal(true, { error: 'A parent or guardian must confirm the address.' }),
+  shipping: z.object({
+    recipientName: line(2, 80, 'Enter the parent or guardian\'s name.'),
+    line1: line(3, 120, 'Enter the street address.'),
+    line2: z.string().trim().max(120).optional().default(''),
+    city: line(2, 60, 'Enter the city or town.'),
+    region: z.string().trim().max(60).optional().default(''),
+    postalCode: line(2, 20, 'Enter the postal or ZIP code.'),
+    country: line(2, 60, 'Enter the country.'),
+  }),
+});
+
+router.post('/medal/claim', medalLimiter, async (req, res) => {
+  if (req.user.role !== 'kid') return res.status(403).json({ error: 'The medal is for junior (kid) accounts.' });
+  const current = myClaim(req.user.id);
+  if (current && ACTIVE.includes(current.status)) return res.status(409).json({ error: 'You already have a medal request. Check its status below.' });
+  const parsed = ClaimSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+  const d = parsed.data;
+  const item = db.get('showcase', d.showcaseId);
+  if (!item || item.userId !== req.user.id) return res.status(404).json({ error: 'Choose one of your own Showcase videos.' });
+  const views = item.viewers?.length ?? 0;
+  if (d.source === 'marketcraft') {
+    if (item.visibility !== 'community' || item.status !== 'approved') return res.status(400).json({ error: 'The video must be approved for the community first.' });
+    if (views < MEDAL_VIEWS) return res.status(400).json({ error: `This video has ${views} of ${MEDAL_VIEWS} views so far. Keep sharing!` });
+  } else {
+    if (!d.externalUrl) return res.status(400).json({ error: 'Paste the link to the video where it got 1,000 views.' });
+    if ((d.externalViews ?? 0) < MEDAL_VIEWS) return res.status(400).json({ error: `The video needs at least ${MEDAL_VIEWS} views.` });
+  }
+  const claim = await db.insert('medals', {
+    userId: req.user.id,
+    showcaseId: item.id,
+    source: d.source,
+    views: d.source === 'marketcraft' ? views : d.externalViews,
+    externalUrl: d.source === 'external' ? d.externalUrl : null,
+    shipping: d.shipping,
+    status: 'requested',
+  });
+  res.status(201).json({ claim: claimOut(claim) });
+});
+
+router.get('/medal/claims', requireAdmin, (req, res) => {
+  const claims = db.all('medals').sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((m) => claimOut(m, true));
+  res.json({ claims, threshold: MEDAL_VIEWS });
+});
+
+router.post('/medal/claims/:id', requireAdmin, async (req, res) => {
+  const parsed = z.object({ status: z.enum(['approved', 'shipped', 'declined']), note: z.string().trim().max(300).optional() }).safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: 'Choose approve, shipped or decline.' });
+  const m = db.get('medals', req.params.id);
+  if (!m) return res.status(404).json({ error: 'Claim not found.' });
+  const { status, note } = parsed.data;
+  const patch = { status, note: note || m.note || null };
+  if (status === 'shipped') patch.shippedAt = new Date().toISOString();
+  // privacy: the home address is deleted once it is no longer needed
+  if (status === 'shipped' || status === 'declined') patch.shipping = null;
+  const saved = await db.update('medals', m.id, patch);
+  if (status === 'approved' || status === 'shipped') {
+    const owner = db.get('users', m.userId);
+    if (owner) await reward(owner, { xp: 100, badges: ['medal'] });
+  }
+  res.json({ claim: claimOut(saved, true) });
 });
 
 // ---- admin moderation ---------------------------------------------------------

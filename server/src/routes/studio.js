@@ -10,7 +10,7 @@ import { videoUpload, uploadPath, removeUpload, toEmbedUrl } from '../uploads.js
 import { evaluateSubmission, RUBRICS } from '../ai/evaluator.js';
 import { getBrief, personalizeChallenge } from '../company.js';
 import { briefToText } from '../ai/ambassadorTools.js';
-import { reward, levelFor } from '../progress.js';
+import { reward, levelFor, activity } from '../progress.js';
 import { publicUser } from '../auth.js';
 import { BADGES } from '../seed.js';
 
@@ -203,8 +203,9 @@ router.post('/submissions', submitLimiter, upload.single('video'), async (req, r
     certificate = await issueCertificate(req.user, challenge, submission, evaluation);
   }
   const newBadges = await reward(req.user, { xp, badges });
+  const play = await activity(req.user, 'pitch');
 
-  res.status(201).json({ submission: serializeSubmission(submission), certificate, newBadges, xpEarned: xp });
+  res.status(201).json({ submission: serializeSubmission(submission), certificate, newBadges: [...newBadges, ...play.newBadges], xpEarned: xp, play });
 });
 
 async function issueCertificate(user, challenge, submission, evaluation) {

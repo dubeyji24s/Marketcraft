@@ -6,7 +6,7 @@ import path from 'node:path';
 import { nanoid } from 'nanoid';
 import { config } from './config.js';
 
-const COLLECTIONS = ['users', 'lessons', 'interviews', 'challenges', 'submissions', 'certificates', 'settings', 'toolRuns', 'showcase', 'designs'];
+const COLLECTIONS = ['users', 'lessons', 'interviews', 'challenges', 'submissions', 'certificates', 'settings', 'toolRuns', 'showcase', 'designs', 'ideas', 'medals'];
 
 let state = null;
 let writeChain = Promise.resolve();

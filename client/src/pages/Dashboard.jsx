@@ -3,6 +3,7 @@ import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { ErrorBox, ROLE_INFO } from '../components/common.jsx';
 import { useUI } from '../store/ui.js';
+import TodayPanel from '../components/TodayPanel.jsx';
 
 const GREETING = {
   kid: 'Ready to become a marketing superstar?',
@@ -56,6 +57,8 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {user.role !== 'admin' && <TodayPanel kid={user.role === 'kid'} />}
+
       <section className="grid stagger" style={{ '--min': '170px' }}>
         <div className="card stat"><span className="muted small">Lessons</span><b>{stats.lessonsCompleted}/{stats.lessonsTotal}</b><div className="progress"><span style={{ width: `${lessonPct}%` }} /></div></div>
         <div className="card stat"><span className="muted small">Pitches submitted</span><b>{stats.submissions}</b></div>
@@ -67,7 +70,8 @@ export default function Dashboard() {
         <div className="card card-accent">
           <h2>Your next mission</h2>
           <ol className="checklist" style={{ marginBottom: 18 }}>
-            <li><span aria-hidden>{stats.lessonsCompleted > 0 ? '✅' : '1️⃣'}</span> <span>Learn the basics in the <Link to="/app/learn">Library</Link></span></li>
+            <li><span aria-hidden>{stats.lessonsCompleted > 0 ? '✅' : '1️⃣'}</span> <span>Learn the basics in the <Link to="/app/learn">Library</Link> (swipe or read)</span></li>
+            <li><span aria-hidden>💡</span> <span>Shape your own idea on your <Link to="/app/ideas">{user.role === 'kid' ? 'Idea Board' : 'Business Canvas'}</Link></span></li>
             <li><span aria-hidden>2️⃣</span> <span>Watch an <Link to="/app/interviews">owner interview</Link> for real-world ideas</span></li>
             <li><span aria-hidden>{stats.submissions > 0 ? '✅' : '3️⃣'}</span> <span>Plan & film your pitch in the <Link to="/app/studio">Studio</Link></span></li>
             <li><span aria-hidden>{stats.certificates > 0 ? '✅' : '4️⃣'}</span> <span>Score {'≥'} {data.passThreshold}% (professional level) to earn your certificate</span></li>

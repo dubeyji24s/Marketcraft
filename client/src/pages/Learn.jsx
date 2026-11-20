@@ -6,6 +6,7 @@ import { ErrorBox, Loading, MiniMarkdown } from '../components/common.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { buildPlan } from '../lib/monthPlan.js';
+import { announcePlay } from '../lib/play.js';
 
 const RESEARCH_STEPS = ['Searching trusted sources…', 'Reading & taking notes…', 'Writing an original lesson…', 'Running the originality check…'];
 
@@ -81,6 +82,8 @@ function ResearchEngine({ onCreated }) {
 
 function MonthPlan({ lessons }) {
   const plan = useMemo(() => buildPlan(lessons), [lessons]);
+  const kid = useAuth((s) => s.user?.role === 'kid');
+  const lessonLink = (l) => (kid ? `/app/learn/${l.id}/cards` : `/app/learn/${l.id}`);
   const [open, setOpen] = useState(() => plan.next ? plan.weeks.find((w) => w.days.includes(plan.next))?.week ?? 1 : 0);
   if (plan.total === 0) return null;
   const pct = Math.round((plan.done / plan.total) * 100);
@@ -94,9 +97,12 @@ function MonthPlan({ lessons }) {
           </p>
         </div>
         {plan.next ? (
-          <Link to={`/app/learn/${plan.next.lesson.id}`} className="btn btn-primary">
-            Day {plan.next.day}: start →
-          </Link>
+          <div className="row" style={{ gap: 8 }}>
+            <Link to={`/app/learn/${plan.next.lesson.id}/cards`} className="btn btn-primary">
+              ⚡ Day {plan.next.day}: swipe it
+            </Link>
+            <Link to={`/app/learn/${plan.next.lesson.id}`} className="btn">📖 Read</Link>
+          </div>
         ) : (
           <span className="chip chip-success">🏆 Month complete!</span>
         )}
@@ -122,7 +128,7 @@ function MonthPlan({ lessons }) {
                 <ol className="month-days">
                   {w.days.map((d) => (
                     <li key={d.day}>
-                      <Link to={`/app/learn/${d.lesson.id}`} className={`month-day ${d.lesson.completed ? 'done' : ''} ${plan.next === d ? 'next' : ''}`}>
+                      <Link to={lessonLink(d.lesson)} className={`month-day ${d.lesson.completed ? 'done' : ''} ${plan.next === d ? 'next' : ''}`}>
                         <span className="month-day-num">{d.lesson.completed ? '✓' : d.day}</span>
                         <span className="month-day-title">{d.lesson.title}</span>
                         <span className="muted small month-day-min">{d.lesson.estimatedMinutes} min</span>
@@ -140,6 +146,7 @@ function MonthPlan({ lessons }) {
 }
 
 export function Library() {
+  const kidView = useAuth((s) => s.user?.role === 'kid');
   const { data, error, loading, setData } = useApi('/lessons');
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
@@ -169,11 +176,12 @@ export function Library() {
       ) : (
         <div className="grid stagger">
           {lessons.map((l) => (
-            <Link key={l.id} to={`/app/learn/${l.id}`} className="card interactive card-accent">
+            <Link key={l.id} to={kidView ? `/app/learn/${l.id}/cards` : `/app/learn/${l.id}`} className="card interactive card-accent">
               <div className="row" style={{ marginBottom: 10 }}>
                 <span className="chip">{l.level}</span>
                 <span className="chip">⏱ {l.estimatedMinutes} min</span>
                 <span className="chip chip-success">💸 {l.costLevel}</span>
+                {kidView && <span className="chip">📱 Swipe</span>}
                 {l.completed && <span className="chip chip-brand">✓ Done</span>}
                 {!l.published && <span className="chip">Private draft</span>}
               </div>
@@ -214,6 +222,7 @@ export function LessonView() {
       const r = await api.post(`/lessons/${lesson.id}/complete`, { answers: quiz.map((_, i) => answers[i] ?? -1) });
       setResult(r);
       celebrate({ badges: r.newBadges, xp: r.xpEarned, title: r.newBadges.length ? 'Lesson complete!' : undefined });
+      announcePlay(r.play);
       refresh();
     } finally {
       setBusy(false);
@@ -232,6 +241,10 @@ export function LessonView() {
           </div>
           <h1>{lesson.title}</h1>
           <p className="muted" style={{ fontSize: '1.1rem' }}>{lesson.summary}</p>
+          <div className="row">
+            <Link className="btn btn-primary" to={`/app/learn/${lesson.id}/cards`}>⚡ Swipe version (~{Math.max(2, Math.round(lesson.estimatedMinutes * 0.4))} min)</Link>
+            <span className="small muted">Short cards, quiz taps and read-aloud. Same lesson, faster.</span>
+          </div>
         </header>
         <div className="card prose">
           {lesson.sections.map((s, i) => (

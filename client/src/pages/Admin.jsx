@@ -4,7 +4,7 @@ import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { ErrorBox, ConfirmButton } from '../components/common.jsx';
 import { useUI } from '../store/ui.js';
-import { ShowcaseReview } from './Showcase.jsx';
+import { ShowcaseReview, MedalClaims } from './Showcase.jsx';
 
 const EMPTY = { title: '', businessName: '', ownerName: '', videoUrl: '', summary: '', takeaways: '', transcriptSummary: '', transcript: '', tags: '' };
 
@@ -253,8 +253,9 @@ export default function Admin() {
         <button role="tab" className="tab" aria-selected={tab === 'brief'} onClick={() => setTab('brief')}>Company brief</button>
         <button role="tab" className="tab" aria-selected={tab === 'roster'} onClick={() => setTab('roster')}>Ambassadors</button>
         <button role="tab" className="tab" aria-selected={tab === 'showcase'} onClick={() => setTab('showcase')}>Showcase review</button>
+        <button role="tab" className="tab" aria-selected={tab === 'medals'} onClick={() => setTab('medals')}>🥇 Medals</button>
       </div>
-      {{ interviews: <InterviewManager />, lessons: <LessonModeration />, brief: <CompanyBrief />, roster: <Roster />, showcase: <ShowcaseReview /> }[tab]}
+      {{ interviews: <InterviewManager />, lessons: <LessonModeration />, brief: <CompanyBrief />, roster: <Roster />, showcase: <ShowcaseReview />, medals: <MedalClaims /> }[tab]}
     </div>
   );
 }

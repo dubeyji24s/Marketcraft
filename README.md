@@ -127,7 +127,15 @@ Learners post their own marketing videos (upload or link) in **Showcase**. Video
 
 ## The marketing month
 
-The Learn page has a **30-day plan**: 36 staff lessons in 5 themed weeks (Foundations → Words, pictures & video → Get found & plan ahead → Trust & happy customers → Grow & protect), about one a day. Kid accounts skip two adult-only lessons, so they get 34. The order lives in `client/src/lib/monthPlan.js`, and `server/test/lessons.test.js` checks that every lesson is in the plan.
+The Learn page has a **30-day plan**: 36 staff lessons in 5 themed weeks (Foundations → Words, pictures & video → Get found & plan ahead → Trust & happy customers → Grow & protect), about one a day. Kid accounts skip five adult-only lessons (for example ad budgets and email lists), so they get 31. The order lives in `client/src/lib/monthPlan.js`, and `server/test/lessons.test.js` checks that every lesson is in the plan.
+
+## Keeping learners engaged (kids and grown-ups)
+
+- **Swipe lessons**: every lesson also comes as a full-screen card feed (`/app/learn/:id/cards`): one idea per card, big visuals, tap-to-answer quiz cards and a free "🔊 Read to me" voice (the browser's own speech, nothing sent anywhere). Kids get shorter cards; adults get a ~3-minute quick mode.
+- **Idea Board / Business Canvas** (`/app/ideas`): build your own business idea in 6 visual steps (idea, customer, edge, price-and-profit slider, channels, slogan) with autosave, +10 XP per new step and a downloadable poster.
+- **Streaks and one daily mission**: the home page shows a streak (one missed day a week is forgiven) and a single daily mission worth +15 XP. There are no leaderboards for kids, no endless feed, and juniors get a "take a break" reminder every 25 minutes.
+- **Junior medal**: when a kid account's Showcase video reaches 1,000 views (unique signed-in members), or a parent shows 1,000 views on another site, a parent can request a free medal posted home. An admin checks it in **Admin → 🥇 Medals**. The address is visible only to the admin and is deleted when the medal is marked shipped or declined. Posting medals costs real money, so budget for medals and postage before you announce it.
+- Shared rules live in `server/src/play/rules.js` (used by the server and the preview) and are tested in `server/test/play.test.js`.
 
 ## Works on every screen
 

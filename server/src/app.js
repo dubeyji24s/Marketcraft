@@ -14,6 +14,7 @@ import ambassadorRoutes from './routes/ambassador.js';
 import showcaseRoutes from './routes/showcase.js';
 import labRoutes from './routes/lab.js';
 import canvaRoutes from './routes/canva.js';
+import playRoutes from './routes/play.js';
 import { AIError } from './ai/client.js';
 
 export function createApp() {
@@ -67,6 +68,7 @@ export function createApp() {
   app.use('/api/showcase', showcaseRoutes);
   app.use('/api/lab', labRoutes);
   app.use('/api/canva', canvaRoutes);
+  app.use('/api/play', playRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'Not found.' }));
 
   // Serve the built React app in production

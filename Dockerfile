@@ -4,6 +4,8 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ ./
+# the client build shares a few pure modules with the server (Starter engine, Guard, play rules)
+COPY server/src/ /app/server/src/
 # Firebase web config is baked into the bundle at build time
 ARG VITE_FIREBASE_API_KEY
 ARG VITE_FIREBASE_AUTH_DOMAIN

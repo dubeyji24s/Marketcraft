@@ -17,6 +17,8 @@ import Interviews from './pages/Interviews.jsx';
 import { StudioHome, ChallengeView } from './pages/Studio.jsx';
 import { CertificateList, CertificateView } from './pages/Certificates.jsx';
 import Admin from './pages/Admin.jsx';
+import Cards from './pages/Cards.jsx';
+import Ideas from './pages/Ideas.jsx';
 
 function AdminOnly({ children }) {
   const user = useAuth((s) => s.user);
@@ -58,6 +60,8 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="learn" element={<Library />} />
           <Route path="learn/:id" element={<LessonView />} />
+          <Route path="learn/:id/cards" element={<Cards />} />
+          <Route path="ideas" element={<Ideas />} />
           <Route path="interviews" element={<Interviews />} />
           <Route path="studio" element={<StudioHome />} />
           <Route path="studio/:id" element={<ChallengeView />} />

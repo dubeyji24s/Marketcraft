@@ -7,6 +7,7 @@ import { ErrorBox, Loading, ScoreRing, CHANNEL_INFO } from '../components/common
 import { VideoPlayer } from './Interviews.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
+import { announcePlay } from '../lib/play.js';
 
 const DIFF = { starter: '🌱 Starter', intermediate: '🔥 Intermediate', advanced: '🚀 Advanced' };
 
@@ -297,6 +298,7 @@ export function ChallengeView() {
     const ev = res.submission.evaluation;
     if (ev.passed) celebrate({ badges: res.newBadges, xp: res.xpEarned, title: ev.distinction ? 'Distinction earned! 🏆' : 'Certificate unlocked! 🏅' });
     else celebrate({ badges: res.newBadges, xp: res.xpEarned });
+    announcePlay(res.play);
     topRef.current?.scrollIntoView({ behavior: 'smooth' });
   }
 

@@ -4,7 +4,7 @@ import { LESSONS } from '../src/seed.js';
 import { EXTRA_LESSONS } from '../src/lessons-extra.js';
 import { PRO_LESSONS } from '../src/lessons-pro.js';
 import { MONTH_LESSONS } from '../src/lessons-month.js';
-import { MONTH_PLAN } from '../../client/src/lib/monthPlan.js';
+import { MONTH_PLAN } from '../src/play/rules.js';
 
 const all = [...LESSONS, ...EXTRA_LESSONS, ...PRO_LESSONS, ...MONTH_LESSONS];
 

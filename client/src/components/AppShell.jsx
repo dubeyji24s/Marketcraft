@@ -8,6 +8,7 @@ import { Brand, APP_NAME } from './Brand.jsx';
 const NAV = [
   { to: '/app', label: 'Home', icon: '🏠', end: true },
   { to: '/app/learn', label: 'Learn', icon: '📚' },
+  { to: '/app/ideas', label: 'Ideas', icon: '💡' },
   { to: '/app/interviews', label: 'Interviews', icon: '🎙️' },
   { to: '/app/studio', label: 'Studio', icon: '🎬' },
   { to: '/app/showcase', label: 'Showcase', icon: '🎥' },
@@ -57,6 +58,14 @@ export default function AppShell() {
   useEffect(() => {
     if (user) document.documentElement.dataset.theme = user.role;
   }, [user]);
+
+  // Healthy habits for juniors: a friendly break reminder after 25 minutes, then every 25 minutes.
+  const isKid = user?.role === 'kid';
+  useEffect(() => {
+    if (!isKid) return undefined;
+    const t = setInterval(() => useUI.getState().toast('🧃 Great work! Time for a quick stretch or a drink of water. Your progress is saved.', 'info'), 25 * 60 * 1000);
+    return () => clearInterval(t);
+  }, [isKid]);
 
   useEffect(() => {
     const page = NAV.find((n) => (n.end ? location.pathname === n.to : location.pathname.startsWith(n.to)));

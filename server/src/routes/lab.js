@@ -11,7 +11,7 @@ import { config } from '../config.js';
 import { requireAuth } from '../auth.js';
 import { toolCatalog, getTool, inputSchema } from '../ai/ambassadorTools.js';
 import { getBrief, referralLink } from '../company.js';
-import { reward } from '../progress.js';
+import { reward, activity } from '../progress.js';
 import { runCopy, guard, agentReport } from '../agents/director.js';
 import { docText } from '../agents/guard.js';
 
@@ -166,7 +166,8 @@ router.post('/designs', requireLab, async (req, res) => {
   if (db.all('designs', (d) => d.userId === req.user.id).length >= MAX_DESIGNS) return res.status(409).json({ error: `You can keep up to ${MAX_DESIGNS} designs. Delete one first.` });
   if (!(await guardDesign(req, res, parsed.data.doc))) return;
   const design = await db.insert('designs', { userId: req.user.id, labMode: req.labMode, ...parsed.data });
-  res.status(201).json({ design: meta(design) });
+  const play = await activity(req.user, 'design');
+  res.status(201).json({ design: meta(design), play });
 });
 
 router.put('/designs/:id', requireLab, async (req, res) => {

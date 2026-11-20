@@ -4,8 +4,9 @@
 import DATA from './data.json';
 import { runStarter } from '@starter';
 import { checkRelevance, checkRequest, docText } from '@guard';
+import { applyActivity, todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, MEDAL_VIEWS } from '@play';
 
-const KEY = 'mc-preview-db-v8';
+const KEY = 'mc-preview-db-v9';
 const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
 const ROLE_LABELS = { kid: 'Kid Entrepreneur', adult: 'Adult Business Owner', professional: 'Professional', admin: 'Admin' };
 const id = () => Math.random().toString(36).slice(2, 12);
@@ -64,7 +65,10 @@ function seed() {
     showcase: [
       stamp({ userId: users[1].id, title: 'Sample: 30-second bakery reel', description: 'Example community post. Hook: steam rising from fresh bread. Target: local families. CTA: visit Saturday.', channel: 'social', tags: ['bakery', 'reel'], visibility: 'community', status: 'approved', videoUrl: 'https://www.youtube.com/', cheers: [] }),
       stamp({ userId: users[2].id, title: 'Sample: lemonade stand sign', description: 'Example of a community post waiting for admin approval.', channel: 'outdoor', tags: ['kids'], visibility: 'community', status: 'pending', videoUrl: 'https://www.youtube.com/', cheers: [] }),
+      stamp({ userId: users[2].id, title: 'Sample: cookie stand reel', description: 'Example junior video with 1,000 simulated views, so you can try the medal request.', channel: 'social', tags: ['kids', 'cookies'], visibility: 'community', status: 'approved', videoUrl: 'https://www.youtube.com/', cheers: [], viewers: Array.from({ length: MEDAL_VIEWS }, (_, i) => `sample-${i}`) }),
     ],
+    ideas: [],
+    medals: [],
     blobs: {},
   };
 }
@@ -126,6 +130,13 @@ function reward(user, xp, badges) {
   user.xp = (user.xp || 0) + xp;
   user.badges = [...user.badges, ...fresh];
   return fresh.map((key) => ({ key, ...DATA.badges[key] }));
+}
+/** Streaks + daily mission (same rules as the server). */
+function activity(u, kind) {
+  const r = applyActivity(u, kind);
+  Object.assign(u, r.patch);
+  const newBadges = reward(u, r.bonusXp, r.streak.count >= 7 ? ['streak-7'] : []);
+  return { streak: r.streak.count, streakUp: r.streakUp, missionDone: r.missionJustDone, bonusXp: r.bonusXp, newBadges };
 }
 const companyName = () => db().brief.displayName || 'Partner Website';
 function personalize(c) {
@@ -208,7 +219,7 @@ function ambassadorStatus(u) {
 function serializeShow(item, u) {
   const owner = db().users.find((x) => x.id === item.userId);
   return {
-    ...item, cheers: item.cheers.length, cheeredByMe: item.cheers.includes(u.id), mine: item.userId === u.id,
+    ...item, viewers: undefined, views: item.viewers?.length ?? 0, cheers: item.cheers.length, cheeredByMe: item.cheers.includes(u.id), mine: item.userId === u.id,
     ownerName: owner?.name ?? 'Learner', ownerRole: ROLE_LABELS[owner?.role] ?? '',
     videoSrc: item.videoBlob ?? null, embedUrl: item.videoUrl ? embed(item.videoUrl) : null,
   };
@@ -264,7 +275,8 @@ on('POST', '/lessons/:id/complete', ({ id: lid }, body) => {
     u.completedLessons.push(l.id);
     newBadges = reward(u, 20 + correct * 10, ['first-lesson', ...(results.length && correct === results.length ? ['quiz-ace'] : [])]);
   }
-  return { results, correct, total: results.length, xpEarned: first ? 20 + correct * 10 : 0, newBadges };
+  const play = activity(u, 'lesson');
+  return { results, correct, total: results.length, xpEarned: first ? 20 + correct * 10 : 0, newBadges: [...newBadges, ...play.newBadges], play };
 });
 on('PATCH', '/lessons/:id', ({ id: lid }, body) => { needAdmin(); const l = db().lessons.find((x) => x.id === lid) ?? fail(404, 'Lesson not found.'); Object.assign(l, body); return { lesson: l }; });
 on('DELETE', '/lessons/:id', ({ id: lid }) => { needAdmin(); db().lessons = db().lessons.filter((x) => x.id !== lid); return { ok: true }; });
@@ -362,7 +374,8 @@ on('POST', '/studio/submissions', (_, body) => {
     }
   }
   const newBadges = reward(u, xp, badges);
-  return { submission: serializeSub(sub), certificate, newBadges, xpEarned: xp };
+  const play = activity(u, 'pitch');
+  return { submission: serializeSub(sub), certificate, newBadges: [...newBadges, ...play.newBadges], xpEarned: xp, play };
 });
 on('GET', '/studio/submissions', () => { const u = need(); return { submissions: db().submissions.filter((s) => s.userId === u.id).map(serializeSub) }; });
 on('GET', '/studio/certificates', () => { const u = need(); return { certificates: db().certificates.filter((c) => c.userId === u.id) }; });
@@ -416,6 +429,125 @@ on('GET', '/ambassador/roster', () => {
 });
 
 // showcase
+
+// ---- play: today, swipe lessons, Idea Board ------------------------------------------
+const lessonVisibleToRole = (u) => (l) => l.published && (u.role === 'admin' || !l.audiences || l.audiences.includes(u.role));
+on('GET', '/play/today', () => {
+  const u = need();
+  const lessons = db().lessons.filter(lessonVisibleToRole(u));
+  const bySlug = new Map(lessons.map((l) => [l.slug, l]));
+  const order = PLAN_ORDER.filter((s) => bySlug.has(s));
+  const nextSlug = order.find((s) => !u.completedLessons.includes(bySlug.get(s).id));
+  const l = nextSlug ? bySlug.get(nextSlug) : null;
+  const lvl = levelInfo(u.xp);
+  return {
+    ...todaySummary(u),
+    level: { ...lvl, title: levelTitle(u.role, lvl.level) },
+    nextLesson: l ? { id: l.id, title: l.title, estimatedMinutes: l.estimatedMinutes, day: order.indexOf(nextSlug) + 1 } : null,
+    cardsDone: u.cardsDone?.length ?? 0,
+    ideas: (db().ideas ?? []).filter((i) => i.userId === u.id).length,
+  };
+});
+on('POST', '/play/cards/:id', ({ id: lid }) => {
+  const u = need();
+  const l = db().lessons.find((x) => x.id === lid && visibleLesson(u)(x)) ?? fail(404, 'Lesson not found.');
+  u.cardsDone ??= [];
+  const first = !u.cardsDone.includes(l.id);
+  let newBadges = [];
+  if (first) {
+    u.cardsDone.push(l.id);
+    newBadges = reward(u, 10, u.cardsDone.length >= 5 ? ['swiper'] : []);
+  }
+  const play = activity(u, 'cards');
+  return { xpEarned: first ? 10 : 0, newBadges: [...newBadges, ...play.newBadges], play };
+});
+const ideaOut = (i) => ({ ...i, progress: ideaProgress(i) });
+function cleanIdea(b) {
+  const t = (v, max) => String(v ?? '').trim().slice(0, max);
+  const n = (v) => (v === '' || v == null || !Number.isFinite(Number(v)) ? '' : Math.max(0, Number(v)));
+  if (b.picture && !/^data:image\/(png|jpeg|webp);base64,/.test(b.picture)) fail(400, 'Pictures must be PNG, JPG or WebP.');
+  if ((b.picture ?? '').length > 450_000) fail(400, 'That picture is too big. Try a smaller one.');
+  return {
+    emoji: t(b.emoji || '💡', 8), color: /^#[0-9a-f]{6}$/i.test(b.color) ? b.color : '#7c5cff', name: t(b.name, 60), what: t(b.what, 300),
+    who: (b.who ?? []).slice(0, 8).map((x) => t(x, 40)), whoText: t(b.whoText, 200), special: t(b.special, 300),
+    cost: n(b.cost), price: n(b.price), channels: (b.channels ?? []).slice(0, 10).map((x) => t(x, 40)), slogan: t(b.slogan, 120), picture: b.picture ?? '',
+  };
+}
+function rewardIdea(u, idea) {
+  const r = ideaReward(idea);
+  if (!r.fresh.length) return { xpEarned: 0, newBadges: [], play: null };
+  idea.awarded = r.awarded;
+  const newBadges = reward(u, r.xp, r.complete ? ['idea-builder'] : []);
+  const play = activity(u, 'idea');
+  return { xpEarned: r.xp, newBadges: [...newBadges, ...play.newBadges], play };
+}
+on('GET', '/play/ideas', () => { const u = need(); return { ideas: (db().ideas ?? []).filter((i) => i.userId === u.id).map(ideaOut) }; });
+on('POST', '/play/ideas', (_, body) => {
+  const u = need();
+  db().ideas ??= [];
+  if (db().ideas.filter((i) => i.userId === u.id).length >= IDEA_LIMIT) fail(400, `You can keep up to ${IDEA_LIMIT} ideas. Delete one to start another.`);
+  const idea = { id: id(), createdAt: now(), updatedAt: now(), userId: u.id, awarded: [], ...cleanIdea(body) };
+  db().ideas.unshift(idea);
+  const r = rewardIdea(u, idea);
+  return { idea: ideaOut(idea), ...r };
+});
+on('PUT', '/play/ideas/:id', ({ id: iid }, body) => {
+  const u = need();
+  const idea = (db().ideas ?? []).find((i) => i.id === iid && i.userId === u.id) ?? fail(404, 'Idea not found.');
+  Object.assign(idea, cleanIdea(body), { updatedAt: now() });
+  const r = rewardIdea(u, idea);
+  return { idea: ideaOut(idea), ...r };
+});
+on('DELETE', '/play/ideas/:id', ({ id: iid }) => { const u = need(); db().ideas = (db().ideas ?? []).filter((i) => !(i.id === iid && i.userId === u.id)); return { ok: true }; });
+
+// ---- showcase views + junior medal ----------------------------------------------------
+on('POST', '/showcase/:id/view', ({ id: sid }) => {
+  const u = need();
+  const it = db().showcase.find((x) => x.id === sid) ?? fail(404, 'Video not found.');
+  it.viewers ??= [];
+  if (it.visibility === 'community' && it.status === 'approved' && it.userId !== u.id && !it.viewers.includes(u.id)) it.viewers.push(u.id);
+  return { views: it.viewers.length };
+});
+const medalOut = (m, admin) => m && {
+  ...m, shipping: undefined, userId: undefined,
+  showcaseTitle: db().showcase.find((x) => x.id === m.showcaseId)?.title ?? null,
+  shipTo: admin ? m.shipping : m.shipping ? { city: m.shipping.city, country: m.shipping.country } : null,
+  ...(admin ? { learner: db().users.find((x) => x.id === m.userId)?.name, contactEmail: db().users.find((x) => x.id === m.userId)?.email } : {}),
+};
+const myMedal = (u) => (db().medals ?? []).filter((m) => m.userId === u.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+on('GET', '/showcase/medal/status', () => {
+  const u = need();
+  const videos = db().showcase.filter((i) => i.userId === u.id && i.visibility === 'community' && i.status === 'approved').map((i) => ({ id: i.id, title: i.title, views: i.viewers?.length ?? 0 })).sort((a, b) => b.views - a.views);
+  return { junior: u.role === 'kid', threshold: MEDAL_VIEWS, videos, claim: medalOut(myMedal(u)) };
+});
+on('POST', '/showcase/medal/claim', (_, b) => {
+  const u = need();
+  if (u.role !== 'kid') fail(403, 'The medal is for junior (kid) accounts.');
+  const cur = myMedal(u);
+  if (cur && cur.status !== 'declined') fail(409, 'You already have a medal request. Check its status below.');
+  if (b.parentConfirm !== true) fail(400, 'A parent or guardian must confirm the address.');
+  const it = db().showcase.find((x) => x.id === b.showcaseId && x.userId === u.id) ?? fail(404, 'Choose one of your own Showcase videos.');
+  const sh = b.shipping ?? {};
+  for (const [k, label] of [['recipientName', 'the parent or guardian\'s name'], ['line1', 'the street address'], ['city', 'the city or town'], ['postalCode', 'the postal or ZIP code'], ['country', 'the country']]) if (!String(sh[k] ?? '').trim()) fail(400, `Enter ${label}.`);
+  const views = it.viewers?.length ?? 0;
+  if (b.source === 'marketcraft' && views < MEDAL_VIEWS) fail(400, `This video has ${views} of ${MEDAL_VIEWS} views so far. Keep sharing!`);
+  if (b.source === 'external' && (!/^https:\/\//.test(b.externalUrl ?? '') || Number(b.externalViews) < MEDAL_VIEWS)) fail(400, `Paste the https:// link and a view count of at least ${MEDAL_VIEWS}.`);
+  const m = { id: id(), createdAt: now(), userId: u.id, showcaseId: it.id, source: b.source, views: b.source === 'external' ? Number(b.externalViews) : views, externalUrl: b.source === 'external' ? b.externalUrl : null, shipping: sh, status: 'requested', note: null };
+  (db().medals ??= []).push(m);
+  return { claim: medalOut(m) };
+});
+on('GET', '/showcase/medal/claims', () => { needAdmin(); return { threshold: MEDAL_VIEWS, claims: [...(db().medals ?? [])].reverse().map((m) => medalOut(m, true)) }; });
+on('POST', '/showcase/medal/claims/:id', ({ id: mid }, b) => {
+  needAdmin();
+  const m = (db().medals ?? []).find((x) => x.id === mid) ?? fail(404, 'Claim not found.');
+  m.status = b.status;
+  if (b.note) m.note = b.note;
+  if (b.status === 'shipped') m.shippedAt = now();
+  if (b.status === 'shipped' || b.status === 'declined') m.shipping = null;
+  if (b.status === 'approved' || b.status === 'shipped') { const owner = db().users.find((x) => x.id === m.userId); if (owner) reward(owner, 100, ['medal']); }
+  return { claim: medalOut(m, true) };
+});
+
 on('GET', '/showcase', (_p, _b, qs) => {
   const u = need();
   const mine = new URLSearchParams(qs).get('scope') === 'mine';
@@ -436,7 +568,9 @@ on('POST', '/showcase', (_, body) => {
     videoUrl: f.videoUrl || null, videoBlob: hasFile ? blobUrl(file) : null, cheers: [],
   };
   db().showcase.unshift(item);
-  return { item: serializeShow(item, u), newBadges: reward(u, 20, ['showcase']) };
+  const newBadges = reward(u, 20, ['showcase']);
+  const play = activity(u, 'showcase');
+  return { item: serializeShow(item, u), newBadges: [...newBadges, ...play.newBadges], play };
 });
 on('PATCH', '/showcase/:id', ({ id: sid }, body) => {
   const u = need();
@@ -450,8 +584,10 @@ on('DELETE', '/showcase/:id', ({ id: sid }) => { const u = need(); db().showcase
 on('POST', '/showcase/:id/cheer', ({ id: sid }) => {
   const u = need();
   const it = db().showcase.find((x) => x.id === sid && (x.userId === u.id || u.role === 'admin' || (x.visibility === 'community' && x.status === 'approved'))) ?? fail(404, 'Video not found.');
-  it.cheers = it.cheers.includes(u.id) ? it.cheers.filter((x) => x !== u.id) : [...it.cheers, u.id];
-  return { item: serializeShow(it, u) };
+  const adding = !it.cheers.includes(u.id);
+  it.cheers = adding ? [...it.cheers, u.id] : it.cheers.filter((x) => x !== u.id);
+  const play = adding && it.userId !== u.id ? activity(u, 'showcase') : null;
+  return { item: serializeShow(it, u), play };
 });
 on('POST', '/showcase/:id/review', ({ id: sid }, body) => {
   const u = needAdmin();

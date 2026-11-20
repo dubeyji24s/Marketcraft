@@ -14,6 +14,10 @@ export const BADGES = {
   'brand-certified': { label: 'Certified Ambassador', emoji: '🌟', description: 'Passed the Ambassador Mission' },
   lab: { label: 'Founder Mode', emoji: '🧪', description: 'Set up your own brand in the Marketing Lab' },
   showcase: { label: 'On Stage', emoji: '🎥', description: 'Shared a marketing video in the Showcase' },
+  'idea-builder': { label: 'Idea Builder', emoji: '💡', description: 'Finished every step of an idea on your Idea Board' },
+  'streak-7': { label: 'On Fire', emoji: '🔥', description: 'Learned 7 days in a row' },
+  swiper: { label: 'Quick Learner', emoji: '📱', description: 'Finished 5 swipe lessons' },
+  medal: { label: 'Marketcraft Medal', emoji: '🥇', description: 'Junior whose marketing video reached 1,000 views' },
 };
 
 export const CHALLENGES = [
