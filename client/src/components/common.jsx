@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { IconTile, BADGE_ICONS } from './Icon.jsx';
 import { useUI } from '../store/ui.js';
 
 export function Loading({ label = 'Loading…' }) {
@@ -48,14 +49,14 @@ export function Celebration() {
   return (
     <Modal onClose={close} label="Achievement unlocked">
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: '3.4rem' }} aria-hidden>🎉</div>
+        <IconTile name="trophy" tone="amber" size={72} className="celebrate-icon" />
         <h2 className="gradient-text">{c.title || 'Achievement unlocked!'}</h2>
         {c.xp > 0 && <p className="chip chip-brand" style={{ fontSize: '1rem' }}>+{c.xp} XP</p>}
         {c.badges.length > 0 && (
           <div className="grid stagger" style={{ '--min': '130px', margin: '18px 0' }}>
             {c.badges.map((b) => (
               <div key={b.key} className="badge-tile earned">
-                <span className="emoji" aria-hidden>{b.emoji}</span>
+                <IconTile name={(BADGE_ICONS[b.key] ?? ['star'])[0]} tone={(BADGE_ICONS[b.key] ?? ['star', 'violet'])[1]} size={50} />
                 <b>{b.label}</b>
                 <span className="muted small">{b.description}</span>
               </div>

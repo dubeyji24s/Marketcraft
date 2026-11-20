@@ -6,11 +6,12 @@ import { VideoPlayer } from './Interviews.jsx';
 import { useUI } from '../store/ui.js';
 import { useAuth } from '../store/auth.js';
 import { announcePlay } from '../lib/play.js';
+import { Icon, IconTile } from '../components/Icon.jsx';
 
 const STATUS = {
-  pending: { label: '⏳ Waiting for review', cls: '' },
-  approved: { label: '✅ Live in the community', cls: 'chip-success' },
-  rejected: { label: '✋ Not approved', cls: 'chip-danger' },
+  pending: { label: 'Waiting for review', cls: '' },
+  approved: { label: 'Live in the community', cls: 'chip-success' },
+  rejected: { label: 'Not approved', cls: 'chip-danger' },
 };
 
 function UploadForm({ onPosted }) {
@@ -50,7 +51,7 @@ function UploadForm({ onPosted }) {
 
   return (
     <form className="card card-accent" onSubmit={submit}>
-      <h2>📤 Add your marketing video</h2>
+      <h2 className="title-with-icon"><IconTile name="share" tone="pink" size={38} /> Add your marketing video</h2>
       <p className="muted small">Share any marketing video you made: a product reel, an ad, a demo, a pitch. Keep it private as your portfolio, or share it with the Marketcraft community.</p>
       <ErrorBox error={error} />
       <div className="tabs" role="tablist" style={{ marginBottom: 14 }}>
@@ -60,7 +61,7 @@ function UploadForm({ onPosted }) {
       {mode === 'upload' ? (
         <div className="field">
           <div className="dropzone" role="button" tabIndex={0} onClick={() => inputRef.current?.click()} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && inputRef.current?.click()}>
-            <div style={{ fontSize: '2rem' }} aria-hidden>🎬</div>
+            <IconTile name="studio" tone="orange" size={48} style={{ margin: '0 auto 8px' }} />
             <b>{file ? file.name : 'Click to choose your video'}</b>
             <div className="hint">MP4, WebM or MOV · up to 200 MB</div>
           </div>
@@ -90,10 +91,10 @@ function UploadForm({ onPosted }) {
         <legend style={{ fontWeight: 600, marginBottom: 8 }}>Who can see it?</legend>
         <div className="segmented" role="radiogroup">
           <button type="button" role="radio" aria-checked={form.visibility === 'private'} className="choice" onClick={() => setForm({ ...form, visibility: 'private' })}>
-            <span className="emoji" aria-hidden>🔒</span><b>Only me</b><span className="muted small" style={{ display: 'block' }}>My private portfolio</span>
+            <IconTile name="lock" tone="violet" size={36} style={{ marginBottom: 6 }} /><b>Only me</b><span className="muted small" style={{ display: 'block' }}>My private portfolio</span>
           </button>
           <button type="button" role="radio" aria-checked={form.visibility === 'community'} className="choice" onClick={() => setForm({ ...form, visibility: 'community' })}>
-            <span className="emoji" aria-hidden>🌍</span><b>Community</b><span className="muted small" style={{ display: 'block' }}>Shown after an admin approves it</span>
+            <IconTile name="users" tone="teal" size={36} style={{ marginBottom: 6 }} /><b>Community</b><span className="muted small" style={{ display: 'block' }}>Shown after an admin approves it</span>
           </button>
         </div>
       </fieldset>
@@ -150,14 +151,14 @@ function VideoCard({ item, onChange, onDelete }) {
       )}
       <div className="row spread" style={{ marginTop: 12 }}>
         <h3 style={{ margin: 0 }}>{item.title}</h3>
-        <button className={`btn btn-sm ${item.cheeredByMe ? 'btn-primary' : ''}`} onClick={cheer} aria-pressed={item.cheeredByMe} aria-label="Cheer this video">👏 {item.cheers}</button>
+        <button className={`btn btn-sm ${item.cheeredByMe ? 'btn-primary' : ''}`} onClick={cheer} aria-pressed={item.cheeredByMe} aria-label="Cheer this video"><Icon name="heart" size={16} /> {item.cheers}</button>
       </div>
-      <p className="muted small" style={{ margin: '4px 0 8px' }}>{item.ownerName}{item.ownerRole ? ` · ${item.ownerRole}` : ''} · {CHANNEL_INFO[item.channel]?.emoji} {CHANNEL_INFO[item.channel]?.label} · 👁 {item.views ?? 0} view{item.views === 1 ? '' : 's'}</p>
+      <p className="muted small" style={{ margin: '4px 0 8px' }}>{item.ownerName}{item.ownerRole ? ` · ${item.ownerRole}` : ''} · {CHANNEL_INFO[item.channel]?.emoji} {CHANNEL_INFO[item.channel]?.label} · {item.views ?? 0} view{item.views === 1 ? '' : 's'}</p>
       {item.description && <p className="small" style={{ whiteSpace: 'pre-wrap' }}>{item.description}</p>}
       {item.tags?.length > 0 && <div className="row" style={{ gap: 6 }}>{item.tags.map((t) => <span key={t} className="chip">#{t}</span>)}</div>}
       {item.mine && (
         <div className="row spread small" style={{ marginTop: 12, paddingTop: 12, borderTop: '1px dashed var(--border)' }}>
-          <span className={`chip ${item.visibility === 'private' ? '' : STATUS[item.status]?.cls}`}>{item.visibility === 'private' ? '🔒 Only you' : STATUS[item.status]?.label}</span>
+          <span className={`chip ${item.visibility === 'private' ? '' : STATUS[item.status]?.cls}`}>{item.visibility === 'private' ? 'Only you' : STATUS[item.status]?.label}</span>
           <span className="row">
             {item.visibility === 'private' ? (
               <button className="btn btn-sm" onClick={() => setVisibility('community')}>Share with community</button>
@@ -188,21 +189,21 @@ export default function Showcase() {
   return (
     <div className="stack" style={{ '--gap': '22px' }}>
       <header>
-        <h1>🎥 Marketing Video Showcase</h1>
+        <h1 className="title-with-icon"><IconTile name="showcase" tone="red" size={44} /> Marketing Video Showcase</h1>
         <p className="muted" style={{ margin: 0 }}>Post the marketing videos you make, build your portfolio, and get inspired by other learners.</p>
       </header>
       <div className="two-col">
         <div className="stack" style={{ '--gap': '18px' }}>
           <div className="tabs" role="tablist">
-            <button role="tab" className="tab" aria-selected={tab === 'community'} onClick={() => setTab('community')}>🌍 Community</button>
-            <button role="tab" className="tab" aria-selected={tab === 'mine'} onClick={() => setTab('mine')}>📁 My videos</button>
+            <button role="tab" className="tab" aria-selected={tab === 'community'} onClick={() => setTab('community')}><Icon name="users" size={16} /> Community</button>
+            <button role="tab" className="tab" aria-selected={tab === 'mine'} onClick={() => setTab('mine')}><Icon name="image" size={16} /> My videos</button>
           </div>
           <ErrorBox error={error} />
           {loading ? (
             <div className="skeleton" />
           ) : items.length === 0 ? (
             <div className="card muted" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2.4rem' }} aria-hidden>{tab === 'mine' ? '📁' : '🌱'}</div>
+              <IconTile name={tab === 'mine' ? 'image' : 'leaf'} tone={tab === 'mine' ? 'violet' : 'green'} size={52} style={{ margin: '0 auto 10px' }} />
               {tab === 'mine' ? 'You haven\'t added any videos yet. Add your first one!' : 'No community videos yet. Be the first to share one!'}
             </div>
           ) : (
@@ -215,13 +216,13 @@ export default function Showcase() {
           {kid && <MedalPanel />}
           <UploadForm onPosted={() => (tab === 'mine' ? reload() : setTab('mine'))} />
           <div className="card small">
-            <h3>📏 Community guidelines</h3>
+            <h3 className="title-with-icon"><IconTile name="checklist" tone="teal" size={30} /> Community guidelines</h3>
             <ul style={{ paddingLeft: '1.2em', lineHeight: 1.7, margin: 0 }}>
               <li>Only post videos you made or have permission to share.</li>
               <li>Disclose sponsorships or ambassador links (#ad).</li>
               <li>No personal info such as addresses, school names or phone numbers.</li>
               <li>Kids: a parent posts and approves every video.</li>
-              <li>Be kind. Cheer others on 👏</li>
+              <li>Be kind. Cheer others on.</li>
             </ul>
           </div>
         </aside>
@@ -277,15 +278,15 @@ function MedalPanel() {
   const best = videos[0];
   const pct = best ? Math.min(100, Math.round((best.views / threshold) * 100)) : 0;
   const statusText = {
-    requested: '📬 Request received! A Marketcraft admin is checking it.',
-    approved: '✅ Approved! Your medal is being prepared.',
-    shipped: '🎉 Your medal is on its way! (We deleted your address after posting it.)',
-    declined: '✋ This request wasn\'t approved.',
+    requested: 'Request received! A Marketcraft admin is checking it.',
+    approved: 'Approved! Your medal is being prepared.',
+    shipped: 'Your medal is on its way! (We deleted your address after posting it.)',
+    declined: 'This request wasn\'t approved.',
   };
   return (
     <div className="card medal-card">
       <div className="medal-head">
-        <span className="medal-icon" aria-hidden>🥇</span>
+        <IconTile name="medal" tone="amber" size={52} className="medal-icon" />
         <div>
           <h3 style={{ margin: 0 }}>Win a real medal!</h3>
           <p className="small" style={{ margin: '2px 0 0' }}>When one of your marketing videos reaches <b>{threshold.toLocaleString()} views</b>, we'll post you a free Marketcraft Medal.</p>
@@ -307,7 +308,7 @@ function MedalPanel() {
           )}
           {videos.length > 0 && (claiming
             ? <MedalClaimForm videos={videos} threshold={threshold} onDone={() => { setClaiming(false); reload(); }} onCancel={() => setClaiming(false)} />
-            : <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => setClaiming(true)}>{best && best.views >= threshold ? '🥇 Claim my medal' : 'Parent: claim with views from another site'}</button>)}
+            : <button type="button" className="btn btn-sm" style={{ marginTop: 10 }} onClick={() => setClaiming(true)}>{best && best.views >= threshold ? 'Claim my medal' : 'Parent: claim with views from another site'}</button>)}
         </>
       )}
     </div>
@@ -327,7 +328,7 @@ function MedalClaimForm({ videos, threshold, onDone, onCancel }) {
     try {
       const { recipientName, line1, line2, city, region, postalCode, country, externalViews, ...rest } = f;
       await api.post('/showcase/medal/claim', { ...rest, ...(f.source === 'external' ? { externalViews: Number(externalViews) } : { externalUrl: '' }), shipping: { recipientName, line1, line2, city, region, postalCode, country } });
-      useUI.getState().toast('Medal request sent! 🥇', 'success');
+      useUI.getState().toast('Medal request sent!', 'success');
       onDone();
     } catch (err) {
       setError(err);
@@ -337,7 +338,7 @@ function MedalClaimForm({ videos, threshold, onDone, onCancel }) {
   }
   return (
     <form className="stack medal-form" style={{ '--gap': '10px', marginTop: 12 }} onSubmit={submit}>
-      <p className="small" style={{ margin: 0 }}><b>👪 For a parent or guardian to fill in.</b> We use this address only to post the medal, show it only to the Marketcraft admin, and delete it as soon as the medal is sent.</p>
+      <p className="small" style={{ margin: 0 }}><b>For a parent or guardian to fill in.</b> We use this address only to post the medal, show it only to the Marketcraft admin, and delete it as soon as the medal is sent.</p>
       <ErrorBox error={error} />
       <label className="field"><span>Video</span>
         <select value={f.showcaseId} onChange={set('showcaseId')}>{videos.map((v) => <option key={v.id} value={v.id}>{v.title} ({v.views} views here)</option>)}</select></label>
@@ -389,7 +390,7 @@ export function MedalClaims() {
   const claims = data?.claims ?? [];
   return (
     <div className="card">
-      <h2>🥇 Medal requests ({claims.filter((c) => c.status === 'requested' || c.status === 'approved').length} open)</h2>
+      <h2 className="title-with-icon"><IconTile name="medal" tone="amber" size={38} /> Medal requests ({claims.filter((c) => c.status === 'requested' || c.status === 'approved').length} open)</h2>
       <p className="muted small">Juniors whose video reached {data?.threshold?.toLocaleString() ?? '1,000'} views. Check the video (and for other sites, the view count at the link), then approve, post the medal, and mark it shipped. Marking shipped or declined deletes the home address.</p>
       {claims.length === 0 ? <p className="muted">No medal requests yet.</p> : (
         <div className="grid" style={{ '--min': '300px' }}>

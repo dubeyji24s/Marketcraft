@@ -2,30 +2,8 @@
 // so learners can flick through a lesson like a feed instead of reading a long page.
 // Kids get shorter cards; grown-ups get a slightly denser "quick mode".
 
-const EMOJI_RULES = [
-  [/price|pric|profit|money|cost|budget|break-even|discount/i, '💰'],
-  [/photo|picture|image|camera|light/i, '📸'],
-  [/video|film|reel|youtube|tiktok/i, '🎬'],
-  [/story|hero|origin/i, '📖'],
-  [/review|rating|star|feedback/i, '⭐'],
-  [/email|inbox|newsletter/i, '📧'],
-  [/social|post|instagram|hashtag|content/i, '📱'],
-  [/customer|audience|who|people|fan/i, '🎯'],
-  [/brand|logo|colou?r|font|voice/i, '🎨'],
-  [/rule|law|ftc|honest|truth|legal|disclos|privacy|claim/i, '⚖️'],
-  [/search|seo|google|found/i, '🔎'],
-  [/event|market|fair|stall|sign/i, '🎪'],
-  [/test|measure|track|number|data|result/i, '📊'],
-  [/scam|password|hack|secur|safe|protect/i, '🛡️'],
-  [/plan|calendar|week|month|launch/i, '🗓️'],
-  [/partner|team|friend|together/i, '🤝'],
-  [/word|write|headline|copy|read/i, '✍️'],
-  [/green|eco|planet|recycl/i, '🌱'],
-  [/ship|deliver|order|refund|online/i, '📦'],
-];
-export function emojiFor(text = '') {
-  return EMOJI_RULES.find(([re]) => re.test(text))?.[1] ?? '💡';
-}
+import { topicIcon } from '../components/Icon.jsx';
+import { LESSON_TOOLS } from '../components/LiveTools.jsx';
 
 const GRADIENTS = [
   ['#7c5cff', '#2bd2ff'],
@@ -82,17 +60,19 @@ function packSentences(list, maxChars) {
 export function buildDeck(lesson, { kid = false } = {}) {
   const maxChars = kid ? 170 : 260;
   const cards = [];
-  cards.push({ type: 'cover', emoji: emojiFor(lesson.title), title: lesson.title, text: plain(lesson.summary), minutes: Math.max(2, Math.round((lesson.estimatedMinutes ?? 6) * (kid ? 0.5 : 0.4))) });
+  cards.push({ type: 'cover', icon: topicIcon(lesson.title, lesson.summary), title: lesson.title, text: plain(lesson.summary), minutes: Math.max(2, Math.round((lesson.estimatedMinutes ?? 6) * (kid ? 0.5 : 0.4))) });
   lesson.sections.forEach((s, si) => {
     const parts = chunk(s.body, maxChars);
     // kids see the first 2 cards of each section; the rest is one tap away
     const shown = kid ? parts.slice(0, 2) : parts.slice(0, 4);
     const more = kid ? parts.slice(2) : parts.slice(4);
-    // the heading decides the picture first; the card text only if the heading has no match
-    const headEmoji = emojiFor(s.heading);
-    shown.forEach((p, pi) => cards.push({ type: 'idea', section: si, heading: s.heading, emoji: headEmoji !== '💡' ? headEmoji : emojiFor(p.text ?? p.items?.join(' ')), part: pi + 1, of: shown.length, ...p, more: pi === shown.length - 1 ? more : [] }));
+    // the heading decides the icon first; the card text only if the heading has no match
+    shown.forEach((p, pi) => cards.push({ type: 'idea', section: si, heading: s.heading, icon: topicIcon(s.heading, p.text ?? p.items?.join(' ')), part: pi + 1, of: shown.length, ...p, more: pi === shown.length - 1 ? more : [] }));
   });
-  // quick check: lesson quiz questions, one per card (answers are checked by the server at the end)
+  // learn by doing: a real decision, then a hands-on tool for some topics
+  if (lesson.scenario) cards.push({ type: 'scenario', ...lesson.scenario });
+  if (LESSON_TOOLS[lesson.slug]) cards.push({ type: 'tool', tool: LESSON_TOOLS[lesson.slug] });
+  // quick check: one quiz question per card, with instant feedback
   (lesson.quiz ?? []).forEach((q, qi) => cards.push({ type: 'quiz', index: qi, question: q.question, options: q.options }));
   const takeaways = (lesson.keyTakeaways ?? []).slice(0, kid ? 4 : 6);
   if (takeaways.length) cards.push({ type: 'recap', items: takeaways });
@@ -107,6 +87,8 @@ export function speakText(card) {
   switch (card.type) {
     case 'cover': return `${card.title}. ${card.text}`;
     case 'idea': return `${card.heading}. ${card.text ?? card.items.join('. ')}`;
+    case 'scenario': return `What would you do? ${card.setup} ${card.options.map((o, i) => `Option ${i + 1}: ${o.text}.`).join(' ')}`;
+    case 'tool': return 'Try it yourself: move the sliders or type to see what happens.';
     case 'quiz': return `${card.question} ${card.options.map((o, i) => `Option ${i + 1}: ${o}.`).join(' ')}`;
     case 'recap': return `Remember: ${card.items.join('. ')}`;
     case 'try': return `Try it: ${card.items.join('. ')}`;

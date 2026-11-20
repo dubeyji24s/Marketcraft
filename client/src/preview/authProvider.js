@@ -4,10 +4,10 @@ export const configured = true;
 export const isPreview = true;
 export const DEMO_PASSWORD = 'preview123';
 export const DEMO_ACCOUNTS = [
-  { email: 'admin@preview.marketcraft', uid: 'demo-admin', label: 'Admin (you)', emoji: '🛠️' },
-  { email: 'learner@preview.marketcraft', uid: 'demo-adult', label: 'Adult learner', emoji: '🏪' },
-  { email: 'parent@preview.marketcraft', uid: 'demo-kid', label: 'Kid on a parent account', emoji: '🧃' },
-  { email: 'graduate@preview.marketcraft', uid: 'demo-grad', label: 'Certified graduate (Lab)', emoji: '🧪' },
+  { email: 'admin@preview.marketcraft', uid: 'demo-admin', label: 'Admin (you)', icon: 'admin', tone: 'blue' },
+  { email: 'learner@preview.marketcraft', uid: 'demo-adult', label: 'Adult learner', icon: 'store', tone: 'teal' },
+  { email: 'parent@preview.marketcraft', uid: 'demo-kid', label: 'Kid on a parent account', icon: 'rocket', tone: 'orange' },
+  { email: 'graduate@preview.marketcraft', uid: 'demo-grad', label: 'Certified graduate (Lab)', icon: 'lab', tone: 'cyan' },
 ];
 
 let current = null;

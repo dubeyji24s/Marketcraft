@@ -4,6 +4,7 @@ import { api } from '../lib/api.js';
 import { ErrorBox, ROLE_INFO } from '../components/common.jsx';
 import { useUI } from '../store/ui.js';
 import TodayPanel from '../components/TodayPanel.jsx';
+import { IconTile, BADGE_ICONS } from '../components/Icon.jsx';
 
 const GREETING = {
   kid: 'Ready to become a marketing superstar?',
@@ -40,7 +41,7 @@ export default function Dashboard() {
       <section className="card hero-card">
         <div className="row spread">
           <div>
-            <div className="small" style={{ fontWeight: 700, opacity: 0.8 }}>{ROLE_INFO[user.role]?.emoji} {user.roleLabel}</div>
+            <div className="small" style={{ fontWeight: 700, opacity: 0.8 }}>{user.roleLabel}</div>
             <h1 style={{ margin: '6px 0' }}>Hey {user.name.split(' ')[0]}!</h1>
             <p className="muted" style={{ margin: 0 }}>{GREETING[user.role]}</p>
           </div>
@@ -69,16 +70,23 @@ export default function Dashboard() {
       <section className="two-col">
         <div className="card card-accent">
           <h2>Your next mission</h2>
-          <ol className="checklist" style={{ marginBottom: 18 }}>
-            <li><span aria-hidden>{stats.lessonsCompleted > 0 ? '✅' : '1️⃣'}</span> <span>Learn the basics in the <Link to="/app/learn">Library</Link> (swipe or read)</span></li>
-            <li><span aria-hidden>💡</span> <span>Shape your own idea on your <Link to="/app/ideas">{user.role === 'kid' ? 'Idea Board' : 'Business Canvas'}</Link></span></li>
-            <li><span aria-hidden>2️⃣</span> <span>Watch an <Link to="/app/interviews">owner interview</Link> for real-world ideas</span></li>
-            <li><span aria-hidden>{stats.submissions > 0 ? '✅' : '3️⃣'}</span> <span>Plan & film your pitch in the <Link to="/app/studio">Studio</Link></span></li>
-            <li><span aria-hidden>{stats.certificates > 0 ? '✅' : '4️⃣'}</span> <span>Score {'≥'} {data.passThreshold}% (professional level) to earn your certificate</span></li>
-            <li><span aria-hidden>{user.ambassador ? '✅' : '5️⃣'}</span> <span>Become a <Link to="/app/ambassador">Brand Ambassador</Link> and use the AI marketing tools</span></li>
+          <ol className="mission-steps">
+            {[
+              { done: stats.lessonsCompleted > 0, icon: 'learn', tone: 'violet', body: <>Learn the basics in the <Link to="/app/learn">Library</Link> (swipe or read)</> },
+              { done: false, icon: 'ideas', tone: 'amber', body: <>Shape your own idea on your <Link to="/app/ideas">{user.role === 'kid' ? 'Idea Board' : 'Business Canvas'}</Link></> },
+              { done: false, icon: 'interviews', tone: 'pink', body: <>Watch an <Link to="/app/interviews">owner interview</Link> for real-world ideas</> },
+              { done: stats.submissions > 0, icon: 'studio', tone: 'orange', body: <>Plan & film your pitch in the <Link to="/app/studio">Studio</Link></> },
+              { done: stats.certificates > 0, icon: 'certificates', tone: 'teal', body: <>Score {'≥'} {data.passThreshold}% (professional level) to earn your certificate</> },
+              { done: Boolean(user.ambassador), icon: 'ambassador', tone: 'blue', body: <>Become a <Link to="/app/ambassador">Brand Ambassador</Link> and use the AI marketing tools</> },
+            ].map((st, i) => (
+              <li key={i} className={st.done ? 'done' : ''}>
+                <IconTile name={st.done ? 'check' : st.icon} tone={st.done ? 'green' : st.tone} size={36} />
+                <span>{st.body}</span>
+              </li>
+            ))}
           </ol>
           <div className="row">
-            <button className="btn btn-primary" onClick={assign}>🎲 Assign me a challenge</button>
+            <button className="btn btn-primary" onClick={assign}>Assign me a challenge</button>
             <Link className="btn" to="/app/learn">Continue learning</Link>
           </div>
         </div>
@@ -89,7 +97,7 @@ export default function Dashboard() {
               const earned = user.badges.includes(key);
               return (
                 <div key={key} className={`badge-tile ${earned ? 'earned' : 'locked'}`} title={b.description}>
-                  <span className="emoji" aria-hidden>{b.emoji}</span>
+                  <IconTile name={(BADGE_ICONS[key] ?? ['star'])[0]} tone={(BADGE_ICONS[key] ?? ['star', 'violet'])[1]} size={46} />
                   <b className="small">{b.label}</b>
                   <span className="sr-only">{earned ? 'earned' : 'locked'}: {b.description}</span>
                 </div>

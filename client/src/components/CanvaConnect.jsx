@@ -5,6 +5,7 @@ import { useApi } from '../lib/useApi.js';
 import { api } from '../lib/api.js';
 import { renderDoc } from './DesignEditor.jsx';
 import { docText } from '@guard';
+import { IconTile } from './Icon.jsx';
 
 export function useCanva() {
   return useApi('/canva/status');
@@ -50,7 +51,7 @@ export function CanvaConnectCard({ status, onChange }) {
   return (
     <div className="card row spread canva-card">
       <div style={{ flex: '1 1 320px' }}>
-        <h3 style={{ margin: 0 }}>🎨 Your own Canva</h3>
+        <h3 className="title-with-icon" style={{ margin: 0 }}><IconTile name="palette" tone="pink" size={30} /> Your own Canva</h3>
         {s.connected ? (
           <p className="small" style={{ margin: '4px 0 0' }}>Connected{s.displayName ? ` as ${s.displayName}` : ''}. Use <b>Send to Canva</b> on any design to keep editing it in your own Canva, with all your Canva Free or Pro features.</p>
         ) : s.configured ? (

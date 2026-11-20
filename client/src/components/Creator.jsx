@@ -5,6 +5,7 @@ import { DocPreview, PRESETS, renderDoc } from './DesignEditor.jsx';
 import { downloadBlob, safeName } from '../lib/download.js';
 import { useUI } from '../store/ui.js';
 import { SendToCanvaButton } from './CanvaConnect.jsx';
+import { IconTile } from './Icon.jsx';
 
 const EXAMPLES = [
   'A bright, fun Instagram post for my lemonade stand summer sale, 20% off this Saturday',
@@ -72,7 +73,7 @@ export default function Creator({ brand, onEdit, onVideo, canvaConnected, guardR
   return (
     <div className="stack" style={{ '--gap': '18px' }}>
       <form className="card creator-box" onSubmit={create}>
-        <h2 style={{ marginBottom: 4 }}>✨ Creator</h2>
+        <h2 className="title-with-icon" style={{ marginBottom: 4 }}><IconTile name="sparkles" tone="violet" size={38} /> Creator</h2>
         <p className="muted small" style={{ marginTop: 0 }}>Describe what you want to make. Mention the type (post, story, flyer, poster, thumbnail, video), the occasion, colours or mood, and details like dates, prices or a "quoted headline".</p>
         <label htmlFor="creator-prompt" className="sr-only">Describe your design</label>
         <textarea id="creator-prompt" className="creator-input" maxLength={400} value={prompt} onChange={(e) => setPrompt(e.target.value)}

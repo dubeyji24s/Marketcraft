@@ -60,7 +60,7 @@ export default function Settings() {
           <dt>Email</dt>
           <dd>{user.email} {user.emailVerified ? <span className="chip chip-success">Verified</span> : <span className="chip chip-danger">Not verified</span>}</dd>
           <dt>Role</dt>
-          <dd>{role.emoji} {role.label}</dd>
+          <dd>{role.label}</dd>
           <dt>Sign-in method</dt>
           <dd>{user.provider === 'google.com' ? 'Google' : 'Email & password'}</dd>
           <dt>Member since</dt>

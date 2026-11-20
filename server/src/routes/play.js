@@ -5,7 +5,8 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { reward, activity } from '../progress.js';
-import { todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT } from '../play/rules.js';
+import { todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, dayKey, flashbackPicks } from '../play/rules.js';
+import { SCENARIOS } from '../lessons-scenarios.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -45,6 +46,47 @@ router.post('/cards/:lessonId', async (req, res) => {
   }
   const play = await activity(req.user, 'cards');
   res.json({ xpEarned: first ? 10 : 0, newBadges: [...newBadges, ...play.newBadges], play });
+});
+
+// ---- "What would you do?" scenarios ----------------------------------------------------------
+router.post('/scenario/:lessonId', async (req, res) => {
+  const lesson = db.get('lessons', req.params.lessonId);
+  const sc = lesson && SCENARIOS[lesson.slug];
+  if (!lesson || !sc || !visibleLesson(req.user)(lesson)) return res.status(404).json({ error: 'Scenario not found.' });
+  const choice = Number(req.body?.choice);
+  if (!Number.isInteger(choice) || !sc.options[choice]) return res.status(400).json({ error: 'Pick one of the options.' });
+  const done = req.user.scenariosDone ?? [];
+  const first = !done.includes(lesson.id);
+  let newBadges = [];
+  if (first) {
+    await db.update('users', req.user.id, { scenariosDone: [...done, lesson.id] });
+    newBadges = await reward(req.user, { xp: 5, badges: done.length + 1 >= 10 ? ['decider'] : [] });
+  }
+  const play = await activity(req.user, 'scenario');
+  res.json({ best: sc.options[choice].best, xpEarned: first ? 5 : 0, newBadges: [...newBadges, ...play.newBadges], play });
+});
+
+// ---- daily Flashback: spaced review of finished lessons ---------------------------------------
+router.get('/review', (req, res) => {
+  const lessons = db.all('lessons', (l) => req.user.completedLessons.includes(l.id) && (l.quiz?.length ?? 0) > 0);
+  const today = dayKey();
+  const picks = flashbackPicks(lessons.map((l) => ({ id: l.id, count: l.quiz.length })), `${req.user.id}:${today}`, 3);
+  const questions = picks.map(({ id, index }) => {
+    const l = lessons.find((x) => x.id === id);
+    const q = l.quiz[index];
+    return { lessonId: l.id, lessonTitle: l.title, index, question: q.question, options: q.options };
+  });
+  res.json({ date: today, questions, doneToday: req.user.reviewLast === today });
+});
+
+router.post('/review/done', async (req, res) => {
+  const today = dayKey();
+  if (req.user.reviewLast === today) return res.json({ xpEarned: 0, newBadges: [], play: null });
+  const days = (req.user.reviewDays ?? 0) + 1;
+  await db.update('users', req.user.id, { reviewLast: today, reviewDays: days });
+  const newBadges = await reward(req.user, { xp: 10, badges: days >= 5 ? ['flashback'] : [] });
+  const play = await activity(req.user, 'review');
+  res.json({ xpEarned: 10, newBadges: [...newBadges, ...play.newBadges], play });
 });
 
 // ---- Idea Board ---------------------------------------------------------------------------

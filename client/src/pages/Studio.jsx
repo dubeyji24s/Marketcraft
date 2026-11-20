@@ -8,6 +8,7 @@ import { VideoPlayer } from './Interviews.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { announcePlay } from '../lib/play.js';
+import { IconTile } from '../components/Icon.jsx';
 
 const DIFF = { starter: '🌱 Starter', intermediate: '🔥 Intermediate', advanced: '🚀 Advanced' };
 
@@ -82,7 +83,7 @@ function PlanChecklist({ challenge }) {
   const done = Object.values(checked).filter(Boolean).length;
   return (
     <div className="card">
-      <div className="row spread"><h3 style={{ margin: 0 }}>📝 Plan your pitch</h3><span className="chip">{done}/{items.length}</span></div>
+      <div className="row spread"><h3 className="title-with-icon" style={{ margin: 0 }}><IconTile name="pen" tone="blue" size={30} /> Plan your pitch</h3><span className="chip">{done}/{items.length}</span></div>
       <div className="progress" style={{ margin: '10px 0' }}><span style={{ width: `${(done / items.length) * 100}%` }} /></div>
       <ul className="checklist">
         {items.map((t, i) => (
@@ -159,7 +160,7 @@ function SubmissionForm({ challenge, onResult, aiEnabled }) {
 
   return (
     <form className="card" onSubmit={submit}>
-      <h2>📤 Submit your pitch</h2>
+      <h2 className="title-with-icon"><IconTile name="share" tone="pink" size={38} /> Submit your pitch</h2>
       {!aiEnabled && <div className="alert alert-info small">⚡ <b>Free scoring mode:</b> your pitch is scored on the rubric from your written strategy and script. Explain your hook, customer, value and visuals clearly.</div>}
       <ErrorBox error={error} />
       <div className="tabs" role="tablist" style={{ marginBottom: 14 }}>
@@ -257,10 +258,10 @@ function EvaluationReport({ submission, certificate, passThreshold, distinctionT
 
       <div className="two-col" style={{ marginTop: 20 }}>
         {ev.strengths.length > 0 && (
-          <div><h3>✨ What worked</h3><ul className="small" style={{ paddingLeft: '1.2em' }}>{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
+          <div><h3 className="title-with-icon"><IconTile name="sparkles" tone="violet" size={30} /> What worked</h3><ul className="small" style={{ paddingLeft: '1.2em' }}>{ev.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
         )}
         {ev.nextSteps.length > 0 && (
-          <div><h3>🎯 {ev.passed ? 'Level up next time' : 'Try this on your next attempt'}</h3><ul className="small" style={{ paddingLeft: '1.2em' }}>{ev.nextSteps.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
+          <div><h3 className="title-with-icon"><IconTile name="target" tone="pink" size={30} /> {ev.passed ? 'Level up next time' : 'Try this on your next attempt'}</h3><ul className="small" style={{ paddingLeft: '1.2em' }}>{ev.nextSteps.map((s, i) => <li key={i}>{s}</li>)}</ul></div>
         )}
       </div>
 
@@ -334,7 +335,7 @@ export function ChallengeView() {
 
         {attempts.length > 0 && (
           <div className="card">
-            <h3>📜 Your attempts</h3>
+            <h3 className="title-with-icon"><IconTile name="certificates" tone="amber" size={30} /> Your attempts</h3>
             <div className="stack" style={{ '--gap': '12px' }}>
               {attempts.map((a) => (
                 <details key={a.id}>
@@ -356,7 +357,7 @@ export function ChallengeView() {
 
       <aside className="stack" style={{ '--gap': '18px' }}>
         <div className="card">
-          <h3>🎬 Your mission</h3>
+          <h3 className="title-with-icon"><IconTile name="studio" tone="orange" size={30} /> Your mission</h3>
           <ol style={{ paddingLeft: '1.2em', lineHeight: 1.7 }} className="small">
             <li>Plan your strategy with the checklist below.</li>
             <li>Record a <b>30–90 second</b> professional pitch or demo with your phone, for {CHANNEL_INFO[challenge.channel]?.label.toLowerCase()}.</li>
@@ -366,7 +367,7 @@ export function ChallengeView() {
         </div>
         <PlanChecklist challenge={challenge} />
         <div className="card">
-          <h3>📏 How you're scored</h3>
+          <h3 className="title-with-icon"><IconTile name="checklist" tone="teal" size={30} /> How you're scored</h3>
           {r.rubric.map((c) => (
             <div key={c.key} style={{ marginBottom: 12 }}>
               <b>{c.label}</b> <span className="muted small">({r.pointsPerCriterion} pts)</span>

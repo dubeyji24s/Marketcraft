@@ -4,17 +4,18 @@ import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { Loading, ROLE_INFO } from './common.jsx';
 import { Brand, APP_NAME } from './Brand.jsx';
+import { Icon } from './Icon.jsx';
 
 const NAV = [
-  { to: '/app', label: 'Home', icon: '🏠', end: true },
-  { to: '/app/learn', label: 'Learn', icon: '📚' },
-  { to: '/app/ideas', label: 'Ideas', icon: '💡' },
-  { to: '/app/interviews', label: 'Interviews', icon: '🎙️' },
-  { to: '/app/studio', label: 'Studio', icon: '🎬' },
-  { to: '/app/showcase', label: 'Showcase', icon: '🎥' },
-  { to: '/app/certificates', label: 'Certificates', icon: '🏅' },
-  { to: '/app/ambassador', label: 'Ambassador', icon: '🤝' },
-  { to: '/app/lab', label: 'My Lab', icon: '🧪' },
+  { to: '/app', label: 'Home', icon: 'home', end: true },
+  { to: '/app/learn', label: 'Learn', icon: 'learn' },
+  { to: '/app/ideas', label: 'Ideas', icon: 'ideas' },
+  { to: '/app/interviews', label: 'Interviews', icon: 'interviews' },
+  { to: '/app/studio', label: 'Studio', icon: 'studio' },
+  { to: '/app/showcase', label: 'Showcase', icon: 'showcase' },
+  { to: '/app/certificates', label: 'Certificates', icon: 'certificates' },
+  { to: '/app/ambassador', label: 'Ambassador', icon: 'ambassador' },
+  { to: '/app/lab', label: 'My Lab', icon: 'lab' },
 ];
 
 export function usePublicTheme() {
@@ -83,7 +84,7 @@ export default function AppShell() {
   if (status !== 'ready') return <Loading label="Loading your academy…" />;
   if (!user) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 
-  const nav = [...NAV, ...(user.role === 'admin' ? [{ to: '/app/admin', label: 'Admin', icon: '🛠️' }] : [])];
+  const nav = [...NAV, ...(user.role === 'admin' ? [{ to: '/app/admin', label: 'Admin', icon: 'admin' }] : [])];
   const roleInfo = ROLE_INFO[user.role] ?? { label: 'Admin', emoji: '🛠️' };
 
   async function onLogout() {
@@ -98,7 +99,7 @@ export default function AppShell() {
         <Brand to="/app" />
         {nav.map((n) => (
           <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-            <span className="nav-icon" aria-hidden>{n.icon}</span>
+            <span className="nav-icon" aria-hidden><Icon name={n.icon} size={18} /></span>
             <span>{n.label}</span>
           </NavLink>
         ))}
@@ -107,7 +108,7 @@ export default function AppShell() {
             <span className="avatar" aria-hidden>{user.name.slice(0, 1).toUpperCase()}</span>
             <span>
               <b>{user.name}</b>
-              <span className="muted small" style={{ display: 'block' }}>{roleInfo.emoji} {roleInfo.label}</span>
+              <span className="muted small" style={{ display: 'block' }}>{roleInfo.label}</span>
             </span>
           </NavLink>
           <button className="btn btn-ghost btn-sm" style={{ marginTop: 10, width: '100%' }} onClick={onLogout}>Log out</button>

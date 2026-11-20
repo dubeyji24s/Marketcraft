@@ -49,11 +49,13 @@ export function liveStreak(streak = {}, today) {
 // ---- daily missions --------------------------------------------------------------------
 // kind = the activity that completes it
 export const MISSIONS = [
-  { id: 'swipe', kind: 'cards', emoji: '📱', kid: 'Swipe through one lesson', grown: 'Finish one swipe lesson (about 3 minutes)', to: '/app/learn' },
-  { id: 'idea', kind: 'idea', emoji: '💡', kid: 'Add something to your Idea Board', grown: 'Move your Business Canvas one step forward', to: '/app/ideas' },
-  { id: 'quiz', kind: 'lesson', emoji: '✏️', kid: 'Answer a lesson quiz', grown: 'Complete a lesson quiz', to: '/app/learn' },
-  { id: 'cheer', kind: 'showcase', emoji: '👏', kid: 'Cheer someone\'s video in Showcase', grown: 'Watch and cheer a Showcase video', to: '/app/showcase' },
-  { id: 'pitch', kind: 'pitch', emoji: '🎤', kid: 'Practise your pitch in the Studio', grown: 'Submit a pitch in the Studio', to: '/app/studio' },
+  { id: 'swipe', kind: 'cards', icon: 'phone', tone: 'violet', emoji: '📱', kid: 'Swipe through one lesson', grown: 'Finish one swipe lesson (about 3 minutes)', to: '/app/learn' },
+  { id: 'idea', kind: 'idea', icon: 'ideas', tone: 'amber', emoji: '💡', kid: 'Add something to your Idea Board', grown: 'Move your Business Canvas one step forward', to: '/app/ideas' },
+  { id: 'quiz', kind: 'lesson', icon: 'pen', tone: 'blue', emoji: '✏️', kid: 'Answer a lesson quiz', grown: 'Complete a lesson quiz', to: '/app/learn' },
+  { id: 'cheer', kind: 'showcase', icon: 'heart', tone: 'pink', emoji: '👏', kid: 'Cheer someone\'s video in Showcase', grown: 'Watch and cheer a Showcase video', to: '/app/showcase' },
+  { id: 'pitch', kind: 'pitch', icon: 'studio', tone: 'orange', emoji: '🎤', kid: 'Practise your pitch in the Studio', grown: 'Submit a pitch in the Studio', to: '/app/studio' },
+  { id: 'flashback', kind: 'review', icon: 'review', tone: 'teal', emoji: '🔁', kid: 'Play today\'s Flashback (3 quick questions)', grown: 'Do today\'s 2-minute Flashback review', to: '/app/review', needsLessons: 2 },
+  { id: 'decide', kind: 'scenario', icon: 'compass', tone: 'green', emoji: '🧭', kid: 'Make a "What would you do?" choice in a lesson', grown: 'Solve one real-world scenario in a lesson', to: '/app/learn' },
 ];
 export const MISSION_XP = 15;
 
@@ -64,10 +66,10 @@ function hash(str) {
 }
 /** Same mission all day for a learner; a different one most days. Studio pitches appear twice a week at most. */
 export function missionFor(user, today) {
-  const pool = MISSIONS.filter((m) => m.kind !== 'pitch' || hash(user.id + today) % 3 === 0);
+  const pool = MISSIONS.filter((m) => (m.kind !== 'pitch' || hash(user.id + today) % 3 === 0) && (user.completedLessons?.length ?? 0) >= (m.needsLessons ?? 0));
   const m = pool[hash(`${user.id}:${today}`) % pool.length];
   const grown = user.role !== 'kid';
-  return { id: m.id, kind: m.kind, emoji: m.emoji, title: grown ? m.grown : m.kid, to: m.to, xp: MISSION_XP };
+  return { id: m.id, kind: m.kind, icon: m.icon, tone: m.tone, emoji: m.emoji, title: grown ? m.grown : m.kid, to: m.to, xp: MISSION_XP };
 }
 
 /**
@@ -114,12 +116,12 @@ export function levelTitle(role, level) {
 
 // ---- Idea Board / Business Canvas ---------------------------------------------------------
 export const IDEA_STEPS = [
-  { id: 'dream', emoji: '✨', kid: 'Dream it', grown: 'The idea', done: (i) => i.name?.trim().length >= 2 && i.what?.trim().length >= 5 },
-  { id: 'who', emoji: '🎯', kid: 'Who is it for?', grown: 'Target customer', done: (i) => (i.who?.length ?? 0) > 0 || i.whoText?.trim().length >= 3 },
-  { id: 'special', emoji: '🌟', kid: 'What makes it special?', grown: 'Why you win', done: (i) => i.special?.trim().length >= 5 },
-  { id: 'money', emoji: '💰', kid: 'Money maths', grown: 'Price & profit', done: (i) => Number(i.price) > 0 && Number(i.cost) >= 0 && i.cost !== '' && i.cost != null },
-  { id: 'spread', emoji: '📣', kid: 'Spread the word', grown: 'Marketing channels', done: (i) => (i.channels?.length ?? 0) > 0 },
-  { id: 'poster', emoji: '🖼️', kid: 'Make your poster', grown: 'Your one-line pitch', done: (i) => i.slogan?.trim().length >= 3 },
+  { id: 'dream', icon: 'sparkles', emoji: '✨', kid: 'Dream it', grown: 'The idea', done: (i) => i.name?.trim().length >= 2 && i.what?.trim().length >= 5 },
+  { id: 'who', icon: 'target', emoji: '🎯', kid: 'Who is it for?', grown: 'Target customer', done: (i) => (i.who?.length ?? 0) > 0 || i.whoText?.trim().length >= 3 },
+  { id: 'special', icon: 'star', emoji: '🌟', kid: 'What makes it special?', grown: 'Why you win', done: (i) => i.special?.trim().length >= 5 },
+  { id: 'money', icon: 'coins', emoji: '💰', kid: 'Money maths', grown: 'Price & profit', done: (i) => Number(i.price) > 0 && Number(i.cost) >= 0 && i.cost !== '' && i.cost != null },
+  { id: 'spread', icon: 'megaphone', emoji: '📣', kid: 'Spread the word', grown: 'Marketing channels', done: (i) => (i.channels?.length ?? 0) > 0 },
+  { id: 'poster', icon: 'image', emoji: '🖼️', kid: 'Make your poster', grown: 'Your one-line pitch', done: (i) => i.slogan?.trim().length >= 3 },
 ];
 export const IDEA_STEP_XP = 10;
 export const IDEA_LIMIT = 12;
@@ -132,6 +134,21 @@ export function ideaReward(idea) {
   const awarded = new Set(idea.awarded ?? []);
   const fresh = ideaProgress(idea).steps.filter((s) => s.done && !awarded.has(s.id)).map((s) => s.id);
   return { fresh, xp: fresh.length * IDEA_STEP_XP, awarded: [...awarded, ...fresh], complete: ideaProgress(idea).done === IDEA_STEPS.length };
+}
+
+// ---- daily Flashback ---------------------------------------------------------------------
+/**
+ * Picks review questions from finished lessons, different each day: a light version of
+ * spaced retrieval practice (recalling earlier material is what makes it stick).
+ * @param lessons [{id, count}] finished lessons and their quiz sizes
+ */
+export function flashbackPicks(lessons, seed, n = 3) {
+  const all = lessons.flatMap((l) => Array.from({ length: l.count }, (_, index) => ({ id: l.id, index })));
+  return all
+    .map((q) => ({ q, k: hash(`${seed}:${q.id}:${q.index}`) }))
+    .sort((a, b) => a.k - b.k)
+    .slice(0, n)
+    .map((x) => x.q);
 }
 
 // ---- junior medal ------------------------------------------------------------------------

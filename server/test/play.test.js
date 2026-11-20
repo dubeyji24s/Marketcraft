@@ -164,3 +164,43 @@ test('junior medal: needs 1,000 unique views, a parent-confirmed address, admin 
   const dash = await kid('GET', '/studio/dashboard');
   assert.ok(dash.body.user.badges.includes('medal'));
 });
+
+test('instant quiz check, scenarios and the daily Flashback', async () => {
+  const kid = await kidClient('learn-kid');
+  const t = await kid('GET', '/play/today');
+  const id = t.body.nextLesson.id;
+  const lesson = (await kid('GET', `/lessons/${id}`)).body.lesson;
+  assert.ok(lesson.scenario?.options.length === 3, 'every planned lesson has a scenario');
+  assert.equal(lesson.quiz[0].answerIndex, undefined, 'answers are not sent with the lesson');
+
+  const right = db.get('lessons', id).quiz[0].answerIndex;
+  const c1 = await kid('POST', `/lessons/${id}/check`, { index: 0, answer: right });
+  assert.deepEqual(c1.body, { correct: true, answerIndex: right });
+  assert.equal((await kid('POST', `/lessons/${id}/check`, { index: 99, answer: 0 })).status, 400);
+
+  const best = lesson.scenario.options.findIndex((o) => o.best);
+  const s1 = await kid('POST', `/play/scenario/${id}`, { choice: best });
+  assert.equal(s1.body.best, true);
+  assert.equal(s1.body.xpEarned, 5);
+  assert.equal((await kid('POST', `/play/scenario/${id}`, { choice: 0 })).body.xpEarned, 0, 'scenario XP once per lesson');
+  assert.equal((await kid('POST', `/play/scenario/${id}`, { choice: 7 })).status, 400);
+
+  const empty = await kid('GET', '/play/review');
+  assert.equal(empty.body.questions.length, 0, 'nothing to review before finishing a lesson');
+  await kid('POST', `/lessons/${id}/complete`, { answers: [right] });
+  const rev = await kid('GET', '/play/review');
+  assert.ok(rev.body.questions.length >= 1);
+  assert.equal(rev.body.questions[0].answerIndex, undefined);
+  assert.equal((await kid('GET', '/play/review')).body.questions[0].question, rev.body.questions[0].question, 'same questions all day');
+  assert.equal((await kid('POST', '/play/review/done')).body.xpEarned, 10);
+  assert.equal((await kid('POST', '/play/review/done')).body.xpEarned, 0, 'once a day');
+});
+
+test('every lesson in the month plan has a valid scenario with exactly one best answer', async () => {
+  const { SCENARIOS } = await import('../src/lessons-scenarios.js');
+  for (const slug of rules.PLAN_ORDER) {
+    const sc = SCENARIOS[slug];
+    assert.ok(sc, `missing scenario for ${slug}`);
+    assert.equal(sc.options.filter((o) => o.best).length, 1, `${slug} needs exactly one best option`);
+  }
+});

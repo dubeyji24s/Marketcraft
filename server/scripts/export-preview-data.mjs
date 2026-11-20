@@ -13,7 +13,9 @@ const { toolCatalog } = await import('../src/ai/ambassadorTools.js');
 const { GUIDELINES, KID_RULE } = await import('../src/routes/ambassador.js');
 
 const out = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../client/src/preview/data.json');
+const { SCENARIOS } = await import('../src/lessons-scenarios.js');
 const data = {
+  scenarios: SCENARIOS,
   lessons: [...LESSONS, ...EXTRA_LESSONS, ...PRO_LESSONS, ...MONTH_LESSONS],
   challenges: [...CHALLENGES, AMBASSADOR_MISSION],
   interviews: INTERVIEWS,

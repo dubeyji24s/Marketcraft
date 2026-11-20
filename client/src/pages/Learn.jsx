@@ -7,6 +7,11 @@ import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { buildPlan } from '../lib/monthPlan.js';
 import { announcePlay } from '../lib/play.js';
+import { Icon, IconTile, TONES, TONE_ORDER, topicIcon } from '../components/Icon.jsx';
+
+const WEEK_ICONS = ['compass', 'studio', 'calendar', 'heart', 'rocket'];
+import { ScenarioBlock } from '../components/Practice.jsx';
+import { LiveTool, LESSON_TOOLS, TOOL_TITLES } from '../components/LiveTools.jsx';
 
 const RESEARCH_STEPS = ['Searching trusted sources…', 'Reading & taking notes…', 'Writing an original lesson…', 'Running the originality check…'];
 
@@ -40,7 +45,7 @@ function ResearchEngine({ onCreated }) {
 
   return (
     <section className="card card-accent">
-      <h2>🧠 AI Research Engine</h2>
+      <h2 className="title-with-icon"><IconTile name="brain" tone="violet" size={40} /> AI Research Engine</h2>
       <p className="muted">
         Ask about any low-cost marketing topic. The AI researches trusted sources (SBA, FTC, SCORE, HBR and more), then writes an
         <b> original</b> lesson with citations. Every lesson passes an automatic plagiarism check before you see it.
@@ -48,7 +53,7 @@ function ResearchEngine({ onCreated }) {
       <ErrorBox error={error} />
       {busy ? (
         <div className="loading-orbit" role="status">
-          <div className="rocket" aria-hidden>🔎</div>
+          <IconTile name="search" tone="teal" size={56} className="rocket" />
           <b>{RESEARCH_STEPS[step]}</b>
           <span className="muted small">This takes about a minute.</span>
         </div>
@@ -91,7 +96,7 @@ function MonthPlan({ lessons }) {
     <section className="card month-plan" aria-labelledby="month-plan-title">
       <div className="month-plan-head">
         <div>
-          <h2 id="month-plan-title" style={{ margin: 0 }}>📅 Your marketing month</h2>
+          <h2 id="month-plan-title" style={{ margin: 0 }}>Your marketing month</h2>
           <p className="muted small" style={{ margin: '4px 0 0' }}>
             {plan.total} lessons in 5 themed weeks, about one a day. Go at your own pace.
           </p>
@@ -99,12 +104,13 @@ function MonthPlan({ lessons }) {
         {plan.next ? (
           <div className="row" style={{ gap: 8 }}>
             <Link to={`/app/learn/${plan.next.lesson.id}/cards`} className="btn btn-primary">
-              ⚡ Day {plan.next.day}: swipe it
+              Day {plan.next.day}: swipe it
             </Link>
-            <Link to={`/app/learn/${plan.next.lesson.id}`} className="btn">📖 Read</Link>
+            <Link to={`/app/learn/${plan.next.lesson.id}`} className="btn">Read</Link>
+            {plan.done > 0 && <Link to="/app/review" className="btn"><Icon name="review" size={16} /> Flashback</Link>}
           </div>
         ) : (
-          <span className="chip chip-success">🏆 Month complete!</span>
+          <span className="chip chip-success">Month complete!</span>
         )}
       </div>
       <div className="row" style={{ alignItems: 'center', gap: 12, margin: '14px 0 6px' }}>
@@ -121,7 +127,7 @@ function MonthPlan({ lessons }) {
           return (
             <div key={w.week} className={`month-week ${isOpen ? 'open' : ''}`}>
               <button type="button" className="month-week-btn" aria-expanded={isOpen} onClick={() => setOpen(isOpen ? 0 : w.week)}>
-                <span>{w.emoji} <b>Week {w.week}</b> · {w.theme}</span>
+                <span className="title-with-icon" style={{ gap: 10 }}><IconTile name={WEEK_ICONS[w.week - 1]} tone={TONE_ORDER[w.week - 1]} size={30} /> <span><b>Week {w.week}</b> · {w.theme}</span></span>
                 <span className="muted small">{wDone}/{w.days.length} {wDone === w.days.length ? '✓' : ''}</span>
               </button>
               {isOpen && (
@@ -175,13 +181,14 @@ export function Library() {
         <div className="grid"><div className="skeleton" /><div className="skeleton" /><div className="skeleton" /></div>
       ) : (
         <div className="grid stagger">
-          {lessons.map((l) => (
-            <Link key={l.id} to={kidView ? `/app/learn/${l.id}/cards` : `/app/learn/${l.id}`} className="card interactive card-accent">
-              <div className="row" style={{ marginBottom: 10 }}>
+          {lessons.map((l, li) => (
+            <Link key={l.id} to={kidView ? `/app/learn/${l.id}/cards` : `/app/learn/${l.id}`} className="card interactive lesson-card" style={{ '--ia': TONES[TONE_ORDER[li % TONE_ORDER.length]][0], '--ib': TONES[TONE_ORDER[li % TONE_ORDER.length]][1] }}>
+              <IconTile name={topicIcon(l.title, l.summary)} tone={TONE_ORDER[li % TONE_ORDER.length]} size={50} />
+              <div className="row" style={{ margin: '14px 0 10px' }}>
                 <span className="chip">{l.level}</span>
-                <span className="chip">⏱ {l.estimatedMinutes} min</span>
-                <span className="chip chip-success">💸 {l.costLevel}</span>
-                {kidView && <span className="chip">📱 Swipe</span>}
+                <span className="chip">{l.estimatedMinutes} min</span>
+                <span className="chip chip-success">{l.costLevel}</span>
+                {kidView && <span className="chip">Swipe</span>}
                 {l.completed && <span className="chip chip-brand">✓ Done</span>}
                 {!l.published && <span className="chip">Private draft</span>}
               </div>
@@ -236,13 +243,13 @@ export function LessonView() {
         <header>
           <div className="row" style={{ marginBottom: 10 }}>
             <span className="chip">{lesson.level}</span>
-            <span className="chip">⏱ {lesson.estimatedMinutes} min</span>
-            <span className="chip chip-success">💸 {lesson.costLevel}</span>
+            <span className="chip">{lesson.estimatedMinutes} min</span>
+            <span className="chip chip-success">{lesson.costLevel}</span>
           </div>
           <h1>{lesson.title}</h1>
           <p className="muted" style={{ fontSize: '1.1rem' }}>{lesson.summary}</p>
           <div className="row">
-            <Link className="btn btn-primary" to={`/app/learn/${lesson.id}/cards`}>⚡ Swipe version (~{Math.max(2, Math.round(lesson.estimatedMinutes * 0.4))} min)</Link>
+            <Link className="btn btn-primary" to={`/app/learn/${lesson.id}/cards`}>Swipe version (~{Math.max(2, Math.round(lesson.estimatedMinutes * 0.4))} min)</Link>
             <span className="small muted">Short cards, quiz taps and read-aloud. Same lesson, faster.</span>
           </div>
         </header>
@@ -263,9 +270,17 @@ export function LessonView() {
           ))}
         </div>
 
+        {(lesson.scenario || LESSON_TOOLS[lesson.slug]) && (
+          <div className="card practice-card">
+            <h2 className="title-with-icon"><IconTile name="compass" tone="green" size={40} /> Practise it</h2>
+            {lesson.scenario && (<><h3>What would you do?</h3><ScenarioBlock lessonId={lesson.id} scenario={lesson.scenario} /></>)}
+            {LESSON_TOOLS[lesson.slug] && (<><h3 style={{ marginTop: 22 }}>Try it live: {TOOL_TITLES[LESSON_TOOLS[lesson.slug]]}</h3><LiveTool kind={LESSON_TOOLS[lesson.slug]} /></>)}
+          </div>
+        )}
+
         {quiz.length > 0 && (
           <div className="card">
-            <h2>Quick check ✏️</h2>
+            <h2>Quick check</h2>
             {quiz.map((q, qi) => (
               <fieldset key={qi} style={{ border: 0, padding: 0, margin: '0 0 18px' }}>
                 <legend style={{ fontWeight: 700, marginBottom: 8 }}>{qi + 1}. {q.question}</legend>
@@ -295,15 +310,15 @@ export function LessonView() {
 
       <aside className="stack" style={{ '--gap': '18px' }}>
         <div className="card">
-          <h3>🎯 Key takeaways</h3>
+          <h3 className="title-with-icon"><IconTile name="target" tone="pink" size={32} /> Key takeaways</h3>
           <ul style={{ paddingLeft: '1.2em', lineHeight: 1.7 }}>{lesson.keyTakeaways.map((t, i) => <li key={i}>{t}</li>)}</ul>
         </div>
         <div className="card">
-          <h3>🛠 Try this week</h3>
+          <h3 className="title-with-icon"><IconTile name="tool" tone="orange" size={32} /> Try this week</h3>
           <ol className="checklist">{lesson.actionSteps.map((t, i) => <li key={i}><span aria-hidden>☐</span>{t}</li>)}</ol>
         </div>
         <div className="card">
-          <h3>📎 Sources & attribution</h3>
+          <h3 className="title-with-icon"><IconTile name="checklist" tone="blue" size={32} /> Sources & attribution</h3>
           <p className="small muted">
             This lesson is original writing that explains ideas from the sources below in our own words. Visit them for the full details.
           </p>

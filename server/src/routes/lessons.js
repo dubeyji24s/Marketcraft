@@ -5,6 +5,7 @@ import { db } from '../db.js';
 import { requireAuth, requireAdmin } from '../auth.js';
 import { generateLesson } from '../ai/research.js';
 import { reward, activity } from '../progress.js';
+import { SCENARIOS } from '../lessons-scenarios.js';
 
 const router = Router();
 router.use(requireAuth);
@@ -24,7 +25,17 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
   const lesson = db.get('lessons', req.params.id);
   if (!lesson || !visibleTo(req.user)(lesson)) return res.status(404).json({ error: 'Lesson not found.' });
-  res.json({ lesson: stripAnswers(lesson), completed: req.user.completedLessons.includes(lesson.id) });
+  res.json({ lesson: { ...stripAnswers(lesson), scenario: SCENARIOS[lesson.slug] ?? null }, completed: req.user.completedLessons.includes(lesson.id) });
+});
+
+// Instant feedback for one quiz question (used by swipe lessons and the daily Flashback).
+router.post('/:id/check', (req, res) => {
+  const lesson = db.get('lessons', req.params.id);
+  if (!lesson || !visibleTo(req.user)(lesson)) return res.status(404).json({ error: 'Lesson not found.' });
+  const parsed = z.object({ index: z.number().int().min(0), answer: z.number().int().min(0) }).safeParse(req.body ?? {});
+  const q = parsed.success ? lesson.quiz?.[parsed.data.index] : null;
+  if (!q) return res.status(400).json({ error: 'Unknown question.' });
+  res.json({ correct: parsed.data.answer === q.answerIndex, answerIndex: q.answerIndex });
 });
 
 router.post('/:id/complete', async (req, res) => {

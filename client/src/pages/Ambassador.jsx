@@ -7,6 +7,7 @@ import { ErrorBox, Loading } from '../components/common.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { downloadText, outputToText, safeName } from '../lib/download.js';
+import { IconTile } from '../components/Icon.jsx';
 
 const HOW_IT_WORKS = [
   ['🎓', 'Get certified', 'Pass any Studio challenge at the professional standard (ambassadors are 18+; kids join through a parent\'s account).'],
@@ -37,7 +38,7 @@ function Locked({ s }) {
   return (
     <div className="stack" style={{ '--gap': '22px' }}>
       <header className="card hero-card">
-        <h1>🤝 Ambassador Program</h1>
+        <h1 className="title-with-icon"><IconTile name="ambassador" tone="blue" size={44} /> Ambassador Program</h1>
         <p className="muted" style={{ margin: 0 }}>
           Graduates aged 18+ become brand ambassadors for {s.company.name || 'our partner company'}, using pro AI tools to market it and earning an Ambassador certificate. Kids take part through a parent's account.
         </p>
@@ -150,14 +151,14 @@ function Member({ s }) {
 
       <div className="two-col">
         <div className="card">
-          <h3>🌐 Your company-website access</h3>
+          <h3 className="title-with-icon"><IconTile name="search" tone="teal" size={30} /> Your company-website access</h3>
           <p className="small" style={{ margin: 0 }}>
             Log in to {c.name || 'the company website'} with <b>the same email or Google account</b> you use here. You have a normal user account,
             so explore it like a customer would. That's what makes your marketing genuine.
           </p>
         </div>
         <div className="card">
-          <h3>🔗 Your referral link</h3>
+          <h3 className="title-with-icon"><IconTile name="share" tone="violet" size={30} /> Your referral link</h3>
           {s.referralLink ? (
             <>
               <code style={{ display: 'block', wordBreak: 'break-all', padding: 10, marginBottom: 10 }}>{s.referralLink}</code>
@@ -174,7 +175,7 @@ function Member({ s }) {
         <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#00c2a8,#3dd6ff)' }}>
           <div className="row spread">
             <div style={{ flex: '1 1 300px' }}>
-              <h2 style={{ marginBottom: 6 }}>🌟 {s.mission.title}</h2>
+              <h2 className="title-with-icon" style={{ marginBottom: 6 }}><IconTile name="star" tone="amber" size={38} /> {s.mission.title}</h2>
               <p className="muted small" style={{ margin: 0 }}>
                 Your final project: a real campaign video for {c.name || 'the company'}, graded on 5 criteria including brand accuracy and honest disclosure.
                 Score <b>{s.passThreshold}%+</b> to earn your Brand Ambassador certificate. Retry as many times as you need.
@@ -191,7 +192,7 @@ function Member({ s }) {
 
       <section>
         <div className="row spread" style={{ marginBottom: 12 }}>
-          <h2 style={{ margin: 0 }}>🧰 AI Marketing Toolkit</h2>
+          <h2 className="title-with-icon" style={{ margin: 0 }}><IconTile name="tool" tone="teal" size={38} /> AI Marketing Toolkit</h2>
           <Link className="btn btn-sm" to="/app/ambassador/drafts">My saved drafts</Link>
         </div>
         <p className="muted">Use them in this order for a full campaign: <b>Persona → Calendar → Post / Script / Ad → Checker</b>.</p>
@@ -210,7 +211,7 @@ function Member({ s }) {
       <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#9b6bff,#3dd6ff)' }}>
         <div className="row spread">
           <div style={{ flex: '1 1 300px' }}>
-            <h2 style={{ marginBottom: 6 }}>🧪 Your Marketing Lab is open</h2>
+            <h2 className="title-with-icon" style={{ marginBottom: 6 }}><IconTile name="lab" tone="cyan" size={38} /> Your Marketing Lab is open</h2>
             <p className="muted small" style={{ margin: 0 }}>{s.mission?.certificateId
               ? <>You're certified: the Lab is fully unlocked for <b>your own</b> brand too.</>
               : <>Use Creator, all six AI tools, the Design Studio and the Video Maker now, in <b>Partner mode</b> (everything promotes the {s.company.name}). Earn your Ambassador certificate to unlock <b>your own brand</b>.</>}</p>
@@ -381,11 +382,11 @@ export function ToolPage() {
         </div>
 
         <aside className="card guide">
-          <h3>📘 What it does</h3>
+          <h3 className="title-with-icon"><IconTile name="learn" tone="blue" size={30} /> What it does</h3>
           <p className="small">{tool.whatItDoes}</p>
-          <h3>⏰ When to use it</h3>
+          <h3 className="title-with-icon"><IconTile name="calendar" tone="orange" size={30} /> When to use it</h3>
           <p className="small">{tool.whenToUse}</p>
-          <h3>🪜 How to use it</h3>
+          <h3 className="title-with-icon"><IconTile name="chart" tone="green" size={30} /> How to use it</h3>
           <ol className="small" style={{ paddingLeft: '1.2em', lineHeight: 1.7 }}>{tool.howTo.map((h, i) => <li key={i}>{h}</li>)}</ol>
           <div className="alert alert-success small" style={{ margin: 0 }}><b>💡 Pro tip:</b> {tool.proTip}</div>
         </aside>

@@ -16,22 +16,23 @@ import VideoMaker from '../components/VideoMaker.jsx';
 import { downloadBlob, downloadText, outputToText, safeName } from '../lib/download.js';
 import { useUI } from '../store/ui.js';
 import { useAuth } from '../store/auth.js';
+import { Icon, IconTile } from '../components/Icon.jsx';
 
 const TABS = [
-  ['brand', '🏷️', 'My brand'],
-  ['creator', '✨', 'Creator'],
-  ['tools', '🧰', 'AI Toolkit'],
-  ['design', '🎨', 'Design Studio'],
-  ['video', '🎬', 'Video Maker'],
-  ['files', '📁', 'My files'],
-  ['team', '🤖', 'AI team'],
+  ['brand', 'star', 'My brand'],
+  ['creator', 'wand', 'Creator'],
+  ['tools', 'tool', 'AI Toolkit'],
+  ['design', 'palette', 'Design Studio'],
+  ['video', 'studio', 'Video Maker'],
+  ['files', 'image', 'My files'],
+  ['team', 'bot', 'AI team'],
 ];
 
 function Locked({ s }) {
   return (
     <div className="stack" style={{ '--gap': '22px' }}>
       <header className="card hero-card">
-        <h1>🧪 My Marketing Lab</h1>
+        <h1 className="title-with-icon"><IconTile name="lab" tone="cyan" size={44} /> My Marketing Lab</h1>
         <p className="muted" style={{ margin: 0 }}>Your own marketing studio: AI tools, a design studio and a video maker, all working on <b>your</b> product or service.</p>
       </header>
       <div className="card" style={{ textAlign: 'center' }}>
@@ -70,7 +71,7 @@ const BRAND_FIELDS = [
 function PartnerCard({ partner, missionId }) {
   return (
     <div className="card card-accent">
-      <h2>🤝 You're creating for the {partner.displayName}</h2>
+      <h2 className="title-with-icon"><IconTile name="ambassador" tone="blue" size={38} /> You're creating for the {partner.displayName}</h2>
       <p className="muted small">Until you earn your Ambassador certificate, everything you make in the Lab promotes our partner. The 🛡️ Partner Guard checks each request, design and video and helps you keep it on-topic. Creator and the AI tools add the partner's name for you.</p>
       <dl className="kv">
         <dt>Promote</dt><dd><b>{partner.name}</b>{partner.tagline ? ` · ${partner.tagline}` : ''}</dd>
@@ -96,7 +97,7 @@ function AgentsPanel() {
     <div className="stack" style={{ '--gap': '16px' }}>
       <div className="card">
         <div className="row spread">
-          <h2 style={{ margin: 0 }}>🤖 Your AI team</h2>
+          <h2 className="title-with-icon" style={{ margin: 0 }}><IconTile name="bot" tone="cyan" size={38} /> Your AI team</h2>
           <button className="btn btn-sm btn-ghost" onClick={reload}>Refresh</button>
         </div>
         <p className="muted small">The <b>Director</b> sends each job to the right agent. Rules and saved answers come first, so most jobs cost <b>0 tokens</b>; a small AI model is only asked when the Guard is unsure, and only when AI is switched on.</p>
@@ -148,7 +149,7 @@ function BrandForm({ brand, onSaved }) {
   }
   return (
     <form className="card" onSubmit={save}>
-      <h2>🏷️ My brand</h2>
+      <h2 className="title-with-icon"><IconTile name="star" tone="amber" size={38} /> My brand</h2>
       <p className="muted small">Tell the Lab about your own product or service once. Every AI tool and template uses these facts, so be accurate: the AI never makes up prices, results or reviews.</p>
       <ErrorBox error={err} />
       <div className="grid" style={{ '--min': '280px', gap: '0 18px' }}>
@@ -330,7 +331,7 @@ function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva, guardD
       {handoff?.kind === 'design' && (
         <div className="card card-accent" style={{ '--accent': 'linear-gradient(90deg,#ff3d81,#ffd23f)' }}>
           <div className="row spread">
-            <h2 style={{ margin: 0 }}>✨ Pick a template for your AI text</h2>
+            <h2 className="title-with-icon" style={{ margin: 0 }}><IconTile name="sparkles" tone="violet" size={38} /> Pick a template for your AI text</h2>
             <button className="btn btn-sm btn-ghost" onClick={clearHandoff}>Dismiss</button>
           </div>
           <p className="muted small">From: {handoff.from}. Every template below already has your words in it. Pick one, then edit anything.</p>
@@ -338,7 +339,7 @@ function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva, guardD
         </div>
       )}
       <div className="card">
-        <h2>🎨 Start a new design</h2>
+        <h2 className="title-with-icon"><IconTile name="palette" tone="pink" size={38} /> Start a new design</h2>
         <p className="muted small">Pick a size. You can add text, shapes and your own photos, or start from a template inside the editor.</p>
         <div className="grid" style={{ '--min': '170px', gap: 10 }}>
           {Object.entries(PRESETS).map(([k, p]) => (
@@ -351,7 +352,7 @@ function DesignStudio({ brand, handoff, clearHandoff, canva, reloadCanva, guardD
         </div>
       </div>
       <div className="card">
-        <h2>🖼️ Free templates</h2>
+        <h2 className="title-with-icon"><IconTile name="image" tone="orange" size={38} /> Free templates</h2>
         <p className="muted small">Original Marketcraft templates, free to use. Your brand name is already filled in.</p>
         <TemplateGallery fields={galleryFields} onPick={(doc, name) => setOpen({ name: `${name} · ${brand?.name ?? 'design'}`, doc })} />
       </div>
@@ -395,7 +396,7 @@ function Files({ s }) {
   return (
     <div className="stack" style={{ '--gap': '18px' }}>
       <div className="card">
-        <div className="row spread"><h2 style={{ margin: 0 }}>✍️ AI drafts</h2>
+        <div className="row spread"><h2 className="title-with-icon" style={{ margin: 0 }}><IconTile name="pen" tone="violet" size={38} /> AI drafts</h2>
           <button className="btn btn-sm btn-primary" disabled={!runs.data?.runs?.length} onClick={downloadAll}>⬇️ Download all</button></div>
         {!runs.data?.runs?.length ? <p className="muted">No AI drafts yet. Use the AI Toolkit tab.</p> : (
           <ul className="checklist">
@@ -416,7 +417,7 @@ function Files({ s }) {
         )}
       </div>
       <div className="card">
-        <h2>🎨 Designs</h2>
+        <h2 className="title-with-icon"><IconTile name="palette" tone="pink" size={38} /> Designs</h2>
         {!designs.data?.designs?.length ? <p className="muted">No designs yet. Use the Design Studio tab.</p> : (
           <ul className="checklist">
             {designs.data.designs.map((d) => (
@@ -479,15 +480,15 @@ export default function Lab() {
     <div className="stack" style={{ '--gap': '18px' }}>
       <header className="lab-head">
         <div>
-          <h1 style={{ margin: 0 }}>🧪 My Marketing Lab</h1>
+          <h1 className="title-with-icon" style={{ margin: 0 }}><IconTile name="lab" tone="cyan" size={44} /> My Marketing Lab</h1>
           <p className="muted" style={{ margin: 0 }}>{partnerMode ? <>Creating for the <b>{p.displayName}</b>: everything here promotes our partner.</> : brandReady ? <>Marketing <b>{data.brand.name}</b> with every tool in one place.</> : 'Set up your brand, then create posts, designs and videos for it.'}</p>
         </div>
-        {partnerMode && <span className="chip chip-brand">🛡️ Partner mode · Partner Guard on</span>}
-        {user?.role === 'kid' && <span className="chip">👨‍👩‍👧 A parent approves anything posted publicly</span>}
+        {partnerMode && <span className="chip chip-brand"><Icon name="shield" size={14} /> Partner mode · Partner Guard on</span>}
+        {user?.role === 'kid' && <span className="chip"><Icon name="users" size={14} /> A parent approves anything posted publicly</span>}
       </header>
       <div className="tabs lab-tabs" role="tablist">
         {TABS.map(([k, icon, label]) => (
-          <button key={k} role="tab" className="tab" aria-selected={current === k} onClick={() => setTab(k)}><span aria-hidden>{icon}</span> {label}</button>
+          <button key={k} role="tab" className="tab" aria-selected={current === k} onClick={() => setTab(k)}><Icon name={icon} size={16} /> {label}</button>
         ))}
       </div>
       {current === 'brand' && (partnerMode ? <PartnerCard partner={p} missionId={data.missionId} /> : <BrandForm brand={data.brand} onSaved={(b) => { setData({ ...data, brand: b }); setTab('creator'); }} />)}

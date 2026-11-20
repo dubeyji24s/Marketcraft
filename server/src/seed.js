@@ -17,6 +17,8 @@ export const BADGES = {
   'idea-builder': { label: 'Idea Builder', emoji: '💡', description: 'Finished every step of an idea on your Idea Board' },
   'streak-7': { label: 'On Fire', emoji: '🔥', description: 'Learned 7 days in a row' },
   swiper: { label: 'Quick Learner', emoji: '📱', description: 'Finished 5 swipe lessons' },
+  decider: { label: 'Decision Maker', emoji: '🧭', description: 'Solved 10 real-world scenarios' },
+  flashback: { label: 'Memory Master', emoji: '🔁', description: 'Did the daily Flashback on 5 different days' },
   medal: { label: 'Marketcraft Medal', emoji: '🥇', description: 'Junior whose marketing video reached 1,000 views' },
 };
 

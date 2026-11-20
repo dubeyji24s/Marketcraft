@@ -9,6 +9,7 @@ import { ConfirmButton, ErrorBox, Loading } from '../components/common.jsx';
 import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { announcePlay } from '../lib/play.js';
+import { Icon, IconTile } from '../components/Icon.jsx';
 import { downloadBlob, safeName } from '../lib/download.js';
 
 const EMOJIS = ['💡', '🍋', '🍪', '🧁', '🎨', '📚', '🐶', '🌱', '⚽', '🎮', '🧶', '💍', '🕯️', '🧼', '📸', '🎵', '🚲', '🧹', '💻', '🍕', '👕', '🌸', '🧸', '🚀'];
@@ -22,14 +23,14 @@ const SPARKS = {
   grown: ['Higher quality', 'Faster or more convenient', 'Lower price', 'Better service', 'Unique or handmade', 'Local and personal'],
 };
 const CHANNELS = [
-  { id: 'Poster', emoji: '🪧', tip: 'Big name, one picture, price and where to find you.' },
-  { id: 'Word of mouth', emoji: '🗣️', tip: 'Ask happy customers: "Know anyone else who\'d like this?"' },
-  { id: 'Short video', emoji: '🎬', tip: 'Hook in the first 3 seconds, show the product, end with what to do.' },
-  { id: 'School or local fair', emoji: '🎪', tip: 'Clear prices, products at different heights, a sign-up sheet.' },
-  { id: 'Social media', emoji: '📱', tip: 'Under 18? Post from a parent\'s account, with their OK.' },
-  { id: 'Email list', emoji: '📧', tip: 'Only email people who said yes, and make it easy to unsubscribe.' },
-  { id: 'Google Business Profile', emoji: '🔎', tip: 'Free listing so people nearby can find you on Search and Maps.' },
-  { id: 'Partner with a shop', emoji: '🤝', tip: 'Team up with a nearby business that has the same customers.' },
+  { id: 'Poster', icon: 'image', tone: 'orange', tip: 'Big name, one picture, price and where to find you.' },
+  { id: 'Word of mouth', icon: 'users', tone: 'pink', tip: 'Ask happy customers: "Know anyone else who\'d like this?"' },
+  { id: 'Short video', icon: 'studio', tone: 'violet', tip: 'Hook in the first 3 seconds, show the product, end with what to do.' },
+  { id: 'School or local fair', icon: 'tent', tone: 'amber', tip: 'Clear prices, products at different heights, a sign-up sheet.' },
+  { id: 'Social media', icon: 'phone', tone: 'blue', tip: 'Under 18? Post from a parent\'s account, with their OK.' },
+  { id: 'Email list', icon: 'mail', tone: 'teal', tip: 'Only email people who said yes, and make it easy to unsubscribe.' },
+  { id: 'Google Business Profile', icon: 'search', tone: 'green', tip: 'Free listing so people nearby can find you on Search and Maps.' },
+  { id: 'Partner with a shop', icon: 'ambassador', tone: 'cyan', tip: 'Team up with a nearby business that has the same customers.' },
 ];
 const blank = () => ({ emoji: '💡', color: COLORS[0], name: '', what: '', who: [], whoText: '', special: '', cost: '', price: '', channels: [], slogan: '', picture: '' });
 const money = (n) => (Number.isFinite(n) ? n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }) : '–');
@@ -60,7 +61,7 @@ export default function Ideas() {
   return (
     <div className="stack" style={{ '--gap': '22px' }}>
       <header>
-        <h1>{kid ? '💡 My Idea Board' : '💡 Business Canvas'}</h1>
+        <h1 className="title-with-icon"><IconTile name="ideas" tone="amber" size={44} /> {kid ? 'My Idea Board' : 'Business Canvas'}</h1>
         <p className="muted">
           {kid
             ? 'Dream up a business, then build it one fun step at a time. Everything saves by itself, and only you can see it.'
@@ -144,7 +145,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
         {IDEA_STEPS.map((s, i) => (
           <li key={s.id}>
             <button type="button" className={`idea-step ${i === step ? 'current' : ''} ${progress.steps[i].done ? 'done' : ''}`} onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined}>
-              <span className="idea-step-dot" aria-hidden>{progress.steps[i].done ? '✓' : s.emoji}</span>
+              <span className="idea-step-dot" aria-hidden><Icon name={progress.steps[i].done ? 'check' : s.icon} size={20} /></span>
               <span className="idea-step-label">{kid ? s.kid : s.grown}</span>
             </button>
           </li>
@@ -153,7 +154,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
 
       <div className="idea-body">
         <div className="stack" style={{ '--gap': '14px' }}>
-          <h2 style={{ margin: 0 }}>{S.emoji} {kid ? S.kid : S.grown}</h2>
+          <h2 className="title-with-icon" style={{ margin: 0 }}><IconTile name={S.icon} tone={['violet', 'pink', 'amber', 'green', 'orange', 'teal'][step]} size={40} /> {kid ? S.kid : S.grown}</h2>
 
           {S.id === 'dream' && (
             <>
@@ -180,7 +181,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
               <ChipPicker options={WHO[kid ? 'kid' : 'grown']} value={idea.who} onChange={(who) => update({ who })} />
               <label className="field"><span>{kid ? 'Anyone else?' : 'Describe them (age, place, what they care about)'}</span>
                 <input value={idea.whoText} maxLength={200} onChange={(e) => update({ whoText: e.target.value })} placeholder={kid ? 'e.g. People walking their dogs' : 'e.g. Parents in our town who shop for gifts online'} /></label>
-              <Link className="small" to="/app/learn">📚 Learn more: "Find Your First 100 Fans"</Link>
+              <Link className="small" to="/app/learn">Learn more: "Find Your First 100 Fans"</Link>
             </>
           )}
 
@@ -189,7 +190,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
               <p className="muted" style={{ margin: 0 }}>{kid ? 'Why would someone pick YOU? Tap a spark for ideas.' : 'Why would a customer choose you over the alternatives?'}</p>
               <div className="chips-wrap">
                 {SPARKS[kid ? 'kid' : 'grown'].map((s) => (
-                  <button type="button" key={s} className="chip-btn" onClick={() => update({ special: idea.special ? `${idea.special.replace(/[.\s]*$/, '')}. ${s}.` : `${s}.` })}>✨ {s}</button>
+                  <button type="button" key={s} className="chip-btn" onClick={() => update({ special: idea.special ? `${idea.special.replace(/[.\s]*$/, '')}. ${s}.` : `${s}.` })}><Icon name="sparkles" size={14} /> {s}</button>
                 ))}
               </div>
               <textarea rows={4} aria-label="What makes it special" value={idea.special} maxLength={300} onChange={(e) => update({ special: e.target.value })} placeholder={kid ? 'e.g. I use real lemons and add a mint leaf' : 'e.g. Delivered in 24 hours, locally made, gift-wrapped free'} />
@@ -207,7 +208,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
                   return (
                     <button type="button" key={c.id} className={`channel ${on ? 'on' : ''}`} aria-pressed={on}
                       onClick={() => update({ channels: on ? idea.channels.filter((x) => x !== c.id) : [...idea.channels, c.id] })}>
-                      <span className="channel-emoji" aria-hidden>{c.emoji}</span>
+                      <IconTile name={c.icon} tone={c.tone} size={38} />
                       <b>{c.id}</b>
                       {on && <span className="small">{c.tip}</span>}
                     </button>
@@ -223,7 +224,7 @@ function IdeaEditor({ idea: initial, kid, onSaved, onClose, onDelete }) {
             <button type="button" className="btn" disabled={step === 0} onClick={() => setStep(step - 1)}>← Back</button>
             {step < IDEA_STEPS.length - 1
               ? <button type="button" className="btn btn-primary" onClick={() => setStep(step + 1)}>Next step →</button>
-              : <Link className="btn btn-primary" to="/app/studio">🎤 Practise the pitch</Link>}
+              : <Link className="btn btn-primary" to="/app/studio">Practise the pitch →</Link>}
           </div>
         </div>
 
@@ -262,9 +263,9 @@ function MoneyStep({ idea, kid, update }) {
     <>
       <p className="muted" style={{ margin: 0 }}>{kid ? 'Let\'s do the money maths! Ask a grown-up to help you add up what things cost.' : 'Set a price that covers every cost per item (materials, packaging, fees, your time).'}</p>
       <div className="money-row">
-        <label className="field"><span>{kid ? '🧺 It costs me (per item)' : 'Cost per item'}</span>
+        <label className="field"><span>{kid ? 'It costs me (per item)' : 'Cost per item'}</span>
           <input type="number" inputMode="decimal" min="0" step="0.05" value={idea.cost} onChange={(e) => update({ cost: num(e.target.value) })} placeholder="0.50" /></label>
-        <label className="field"><span>{kid ? '🏷️ I will sell it for' : 'Price'}</span>
+        <label className="field"><span>{kid ? 'I will sell it for' : 'Price'}</span>
           <input type="number" inputMode="decimal" min="0" step="0.05" value={idea.price} onChange={(e) => update({ price: num(e.target.value) })} placeholder="2.00" /></label>
       </div>
       <input type="range" min="0" max={max} step="0.25" value={Number.isFinite(price) ? price : 0} onChange={(e) => update({ price: Number(e.target.value) })} aria-label="Price slider" className="price-slider" />
@@ -273,7 +274,7 @@ function MoneyStep({ idea, kid, update }) {
           {profit > 0 ? (
             <>
               <b>{kid ? `You keep ${money(profit)} for every one you sell! 🎉` : `Profit per sale: ${money(profit)} (${Math.round((profit / price) * 100)}% margin)`}</b>
-              <div className="coins" aria-hidden>{'🪙'.repeat(Math.min(10, Math.max(1, Math.round(ten / Math.max(price, 1)))))}</div>
+              <div className="coins" aria-hidden>{Array.from({ length: Math.min(10, Math.max(1, Math.round(ten / Math.max(price, 1)))) }, (_, k) => <span key={k} className="coin"><Icon name="coins" size={16} /></span>)}</div>
               <span className="small">{kid ? `Sell 10 → you earn ${money(ten)}` : `10 sales = ${money(ten)} profit · 100 sales = ${money(profit * 100)}`}</span>
             </>
           ) : (
@@ -309,12 +310,12 @@ function PosterStep({ idea, kid, update }) {
       <label className="field"><span>{kid ? 'Your catchy slogan' : 'One-line pitch'}</span>
         <input value={idea.slogan} maxLength={120} onChange={(e) => update({ slogan: e.target.value })} placeholder={kid ? 'e.g. Zoom into summer!' : 'e.g. Cozy, handmade, made to last.'} /></label>
       <div className="row">
-        <label className="btn btn-sm">📷 {idea.picture ? 'Change picture' : 'Add a picture'}
+        <label className="btn btn-sm"><Icon name="camera" size={16} /> {idea.picture ? 'Change picture' : 'Add a picture'}
           <input type="file" accept="image/png,image/jpeg,image/webp" onChange={pick} hidden /></label>
         {idea.picture && <button type="button" className="btn btn-sm btn-ghost" onClick={() => update({ picture: '' })}>Remove picture</button>}
-        <button type="button" className="btn btn-sm btn-primary" onClick={() => downloadPoster(idea)}>⬇ Download poster</button>
+        <button type="button" className="btn btn-sm btn-primary" onClick={() => downloadPoster(idea)}><Icon name="share" size={16} /> Download poster</button>
       </div>
-      {kid && <p className="small muted" style={{ margin: 0 }}>🛡️ Don't put your address, school or phone number on posters you share online.</p>}
+      {kid && <p className="small muted" style={{ margin: 0 }}><Icon name="shield" size={14} /> Don't put your address, school or phone number on posters you share online.</p>}
     </>
   );
 }

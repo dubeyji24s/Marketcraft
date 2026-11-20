@@ -9,6 +9,9 @@ import { useAuth } from '../store/auth.js';
 import { useUI } from '../store/ui.js';
 import { buildDeck, cardGradient, speakText } from '../lib/cards.js';
 import { announcePlay, speech } from '../lib/play.js';
+import { Icon, IconTile, TONE_ORDER } from '../components/Icon.jsx';
+import { ScenarioBlock, QuizBlock } from '../components/Practice.jsx';
+import { LiveTool, TOOL_TITLES } from '../components/LiveTools.jsx';
 
 const READ_KEY = 'mc-read-aloud';
 
@@ -104,13 +107,13 @@ export default function Cards() {
   return (
     <div className={`swipe ${kid ? 'swipe-kid' : ''}`} role="dialog" aria-modal="true" aria-label={`${data.lesson.title}: swipe lesson`}>
       <div className="swipe-top">
-        <Link to={`/app/learn/${id}`} className="swipe-btn" aria-label="Close swipe lesson">✕</Link>
+        <Link to={`/app/learn/${id}`} className="swipe-btn" aria-label="Close swipe lesson"><Icon name="close" size={20} /></Link>
         <div className="swipe-bars" aria-hidden>
           {deck.map((_, i) => <span key={i} className={i <= index ? 'on' : ''} />)}
         </div>
         {speech.supported && (
           <button type="button" className={`swipe-btn ${readAloud ? 'on' : ''}`} onClick={toggleRead} aria-pressed={readAloud} title="Read to me">
-            {readAloud ? '🔊' : '🔈'}<span className="sr-only">Read to me</span>
+            <Icon name={readAloud ? 'volume' : 'mute'} size={20} /><span className="sr-only">Read to me</span>
           </button>
         )}
       </div>
@@ -124,7 +127,7 @@ export default function Cards() {
               <div className="swipe-inner">
                 {card.type === 'cover' && (
                   <>
-                    <div className="swipe-emoji big" aria-hidden>{card.emoji}</div>
+                    <IconTile name={card.icon} tone={TONE_ORDER[i % TONE_ORDER.length]} size={96} className="swipe-icon" />
                     <h1>{card.title}</h1>
                     <p className="swipe-text">{card.text}</p>
                     <span className="swipe-chip">⏱ about {card.minutes} min · {deck.length} cards</span>
@@ -132,7 +135,7 @@ export default function Cards() {
                 )}
                 {card.type === 'idea' && (
                   <>
-                    <div className="swipe-emoji" aria-hidden>{card.emoji}</div>
+                    <IconTile name={card.icon} tone={TONE_ORDER[i % TONE_ORDER.length]} size={64} className="swipe-icon" />
                     <span className="swipe-chip">{card.heading}{card.of > 1 ? ` · ${card.part}/${card.of}` : ''}</span>
                     {card.kind === 'list' ? (
                       <ul className="swipe-list">{card.items.map((t, k) => <li key={k}>{t}</li>)}</ul>
@@ -145,56 +148,50 @@ export default function Cards() {
                           {card.more.map((m, k) => (m.kind === 'list' ? <ul key={k} className="swipe-list small">{m.items.map((t, j) => <li key={j}>{t}</li>)}</ul> : <p key={k}>{m.text}</p>))}
                         </div>
                       ) : (
-                        <button type="button" className="swipe-pill" onClick={() => setOpen({ ...open, [i]: true })}>＋ Tell me more</button>
+                        <button type="button" className="swipe-pill" onClick={() => setOpen({ ...open, [i]: true })}>Tell me more</button>
                       )
                     )}
                   </>
                 )}
+                {card.type === 'scenario' && (
+                  <>
+                    <IconTile name="compass" tone="green" size={60} className="swipe-icon" />
+                    <span className="swipe-chip">What would you do?</span>
+                    <ScenarioBlock lessonId={id} scenario={card} />
+                  </>
+                )}
+                {card.type === 'tool' && (
+                  <>
+                    <IconTile name="tool" tone="cyan" size={60} className="swipe-icon" />
+                    <span className="swipe-chip">Try it live · {TOOL_TITLES[card.tool]}</span>
+                    <LiveTool kind={card.tool} kid={kid} />
+                  </>
+                )}
                 {card.type === 'quiz' && (
                   <>
-                    <div className="swipe-emoji" aria-hidden>🤔</div>
                     <span className="swipe-chip">Quick check {card.index + 1}/{quizTotal}</span>
-                    <h2>{card.question}</h2>
-                    <div className="swipe-options" role="radiogroup" aria-label={card.question}>
-                      {card.options.map((opt, oi) => {
-                        const r = result?.results?.[card.index];
-                        const mark = r ? (oi === r.answerIndex ? ' ✅' : answers[card.index] === oi ? ' ❌' : '') : '';
-                        return (
-                          <button
-                            key={oi}
-                            type="button"
-                            role="radio"
-                            aria-checked={answers[card.index] === oi}
-                            className={`swipe-option ${answers[card.index] === oi ? 'picked' : ''}`}
-                            disabled={Boolean(result)}
-                            onClick={() => { setAnswers({ ...answers, [card.index]: oi }); setTimeout(() => go(i + 1), 450); }}
-                          >
-                            {opt}{mark}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {answers[card.index] != null && !result && <p className="swipe-hint">Answer saved! You'll see your score at the end ✨</p>}
+                    <QuizBlock lessonId={id} index={card.index} question={card.question} options={card.options}
+                      onAnswer={(a) => { setAnswers((prev) => ({ ...prev, [card.index]: a })); setTimeout(() => go(i + 1), 1400); }} />
                   </>
                 )}
                 {card.type === 'recap' && (
                   <>
-                    <div className="swipe-emoji" aria-hidden>🧠</div>
+                    <IconTile name="brain" tone="pink" size={60} className="swipe-icon" />
                     <h2>Remember this</h2>
                     <ul className="swipe-list">{card.items.map((t, k) => <li key={k}>{t}</li>)}</ul>
                   </>
                 )}
                 {card.type === 'try' && (
                   <>
-                    <div className="swipe-emoji" aria-hidden>🚀</div>
+                    <IconTile name="rocket" tone="orange" size={60} className="swipe-icon" />
                     <h2>{kid ? 'Your mission' : 'Try it this week'}</h2>
                     <ol className="swipe-list">{card.items.map((t, k) => <li key={k}>{t}</li>)}</ol>
-                    <Link className="swipe-pill" to="/app/ideas">💡 Use it on my {kid ? 'Idea Board' : 'Business Canvas'}</Link>
+                    <Link className="swipe-pill" to="/app/ideas">Use it on my {kid ? 'Idea Board' : 'Business Canvas'}</Link>
                   </>
                 )}
                 {card.type === 'finish' && (
                   <>
-                    <div className="swipe-emoji big" aria-hidden>{result ? '🎉' : '🏁'}</div>
+                    <IconTile name={result ? 'trophy' : 'checklist'} tone="amber" size={96} className="swipe-icon" />
                     {!result ? (
                       <>
                         <h2>{kid ? 'You made it to the end!' : 'Nice work — that\'s the lesson.'}</h2>
@@ -208,7 +205,7 @@ export default function Cards() {
                     ) : (
                       <>
                         <h2>{result.total ? `${result.correct}/${result.total} correct` : 'Lesson complete!'}</h2>
-                        <p className="swipe-text">{result.correct === result.total ? 'Perfect! 🌟' : 'Swipe back up to see the right answers ✅'}</p>
+                        <p className="swipe-text">{result.correct === result.total ? 'Perfect score!' : 'Questions from this lesson can come back in your daily Flashback to help them stick.'}</p>
                         <div className="row" style={{ justifyContent: 'center' }}>
                           <Link className="btn btn-primary" to="/app/learn">Next lesson →</Link>
                           <Link className="btn" to="/app">Home</Link>
@@ -218,7 +215,7 @@ export default function Cards() {
                   </>
                 )}
               </div>
-              {i < deck.length - 1 && i === index && <button type="button" className="swipe-next" onClick={() => go(i + 1)} aria-label="Next card">⌄</button>}
+              {i < deck.length - 1 && i === index && <button type="button" className="swipe-next" onClick={() => go(i + 1)} aria-label="Next card"><Icon name="down" size={22} /></button>}
             </section>
           );
         })}

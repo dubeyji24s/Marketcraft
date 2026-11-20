@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { IconTile, TONES, ROLE_ICONS } from '../components/Icon.jsx';
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../store/auth.js';
 import { usePublicTheme } from '../components/AppShell.jsx';
@@ -45,12 +46,12 @@ export function Footer() {
 export function Landing() {
   usePublicTheme();
   const features = [
-    { icon: '🧠', title: 'AI research library', text: 'Original lessons synthesized from trusted sources like the SBA and FTC — always cited, never copied.' },
-    { icon: '🎙️', title: 'Real owner interviews', text: 'Local business owners share the scrappy, low-cost moves that actually grew their shops.' },
-    { icon: '🎬', title: 'Hands-on studio', text: 'Plan and film a real pitch video for social, ads or outdoor campaigns.' },
-    { icon: '🤖', title: 'AI coach feedback', text: 'Get scored on clarity, audience, value and visuals — retry as many times as you like.' },
-    { icon: '🏅', title: 'Verifiable certificates', text: 'Reach the professional 85% standard and download a certificate with your earned badge.' },
-    { icon: '🤝', title: 'Ambassador program', text: 'Graduates (18+) get their Marketing Lab right away, with six AI tools, Creator, design and video, to market one specific partner website. Earn the Ambassador certificate to market your own brand too.' },
+    { icon: 'phone', tone: 'violet', title: 'Swipe lessons', text: 'Every lesson as quick, visual cards with read-aloud. 36 researched lessons from sources like the SBA and FTC, always cited.' },
+    { icon: 'compass', tone: 'teal', title: 'Real decisions, real results', text: 'Each lesson drops you into a business situation. Pick what you\'d do and instantly see what happens.' },
+    { icon: 'ideas', tone: 'amber', title: 'Build your own idea', text: 'Your Idea Board turns lessons into a real plan: customer, price, profit, channels and a poster to download.' },
+    { icon: 'studio', tone: 'pink', title: 'Studio + AI coach', text: 'Film a real pitch and get scored on clarity, audience, value and visuals. Retry until you hit the professional 85%.' },
+    { icon: 'medal', tone: 'orange', title: 'Showcase & real medals', text: 'Share your marketing videos. Juniors whose video reaches 1,000 views get a free medal posted home.' },
+    { icon: 'ambassador', tone: 'blue', title: 'Certificates & Ambassador', text: 'Earn verifiable certificates. Graduates 18+ unlock the Marketing Lab with six AI tools, Creator, design and video.' },
   ];
   const steps = [
     ['Learn', 'Bite-sized lessons on marketing that costs little or nothing.'],
@@ -66,10 +67,10 @@ export function Landing() {
       <main>
         <section className="container hero" style={{ position: 'relative' }}>
           <div className="floaters" aria-hidden>
-            <span style={{ left: '6%', top: '10%' }}>🧃</span>
-            <span style={{ right: '8%', top: '18%', animationDelay: '1s' }}>📈</span>
-            <span style={{ left: '12%', bottom: '0%', animationDelay: '2s' }}>🪧</span>
-            <span style={{ right: '14%', bottom: '6%', animationDelay: '0.5s' }}>📱</span>
+            <IconTile name="megaphone" tone="orange" size={58} style={{ left: '6%', top: '12%' }} />
+            <IconTile name="trend" tone="teal" size={52} style={{ right: '8%', top: '20%', animationDelay: '1s' }} />
+            <IconTile name="ideas" tone="amber" size={48} style={{ left: '12%', bottom: '2%', animationDelay: '2s' }} />
+            <IconTile name="heart" tone="pink" size={50} style={{ right: '13%', bottom: '8%', animationDelay: '0.5s' }} />
           </div>
           <div className="hero-logo"><LogoMark size={96} /></div>
         <span className="chip chip-brand">The Marketcraft course · for kids (with a parent), owners & pros</span>
@@ -84,12 +85,17 @@ export function Landing() {
             <Link className="btn btn-primary btn-lg" to="/signup">Create my free account</Link>
             <Link className="btn btn-lg" to="/login">I have an account</Link>
           </div>
+          <div className="hero-pills">
+            <span className="hero-pill"><IconTile name="zap" tone="violet" size={28} /> 3-minute lessons</span>
+            <span className="hero-pill"><IconTile name="flame" tone="orange" size={28} /> Daily streaks</span>
+            <span className="hero-pill"><IconTile name="shield" tone="green" size={28} /> We never sell your info</span>
+          </div>
         </section>
 
-        <section className="container grid stagger" style={{ '--min': '200px', paddingBottom: 56 }} aria-label="Features">
+        <section className="container feature-grid stagger" style={{ paddingBottom: 56 }} aria-label="Features">
           {features.map((f) => (
-            <div className="card" key={f.title}>
-              <div style={{ fontSize: '2rem' }} aria-hidden>{f.icon}</div>
+            <div className="card feature-card" key={f.title} style={{ '--ia': TONES[f.tone][0] }}>
+              <IconTile name={f.icon} tone={f.tone} size={52} />
               <h3>{f.title}</h3>
               <p className="muted small" style={{ margin: 0 }}>{f.text}</p>
             </div>
@@ -111,10 +117,10 @@ export function Landing() {
 
         <section className="container" style={{ paddingBottom: 80 }}>
           <h2 style={{ textAlign: 'center' }}>Pick your path</h2>
-          <div className="grid stagger" style={{ '--min': '240px' }}>
+          <div className="path-grid stagger">
             {Object.entries(ROLE_INFO).map(([key, r]) => (
               <Link key={key} to={`/signup?role=${key}`} className="card interactive card-accent">
-                <div style={{ fontSize: '2.4rem' }} aria-hidden>{r.emoji}</div>
+                <IconTile name={ROLE_ICONS[key][0]} tone={ROLE_ICONS[key][1]} size={56} />
                 <h3>{r.label}</h3>
                 <p className="muted" style={{ margin: 0 }}>{r.blurb}</p>
               </Link>
@@ -205,7 +211,7 @@ export function Login() {
           <div className="row">
             {authProvider.DEMO_ACCOUNTS.map((d) => (
               <button key={d.email} type="button" className="btn btn-sm" disabled={busy} onClick={() => run(() => login(d.email, authProvider.DEMO_PASSWORD))}>
-                <span aria-hidden>{d.emoji}</span> {d.label}
+                <IconTile name={d.icon ?? 'users'} tone={d.tone ?? 'violet'} size={22} /> {d.label}
               </button>
             ))}
           </div>
@@ -242,7 +248,7 @@ function ProfileFields({ form, setForm, accountWord = 'account' }) {
         <div className="segmented" role="radiogroup">
           {Object.entries(ROLE_INFO).map(([key, r]) => (
             <button type="button" key={key} role="radio" aria-checked={form.role === key} className="choice" onClick={() => setForm({ ...form, role: key })}>
-              <span className="emoji" aria-hidden>{r.emoji}</span>
+              <IconTile name={ROLE_ICONS[key][0]} tone={ROLE_ICONS[key][1]} size={40} style={{ marginBottom: 8 }} />
               <b>{r.label}</b>
               <span className="muted small" style={{ display: 'block' }}>{key === 'kid' ? 'Under 18 · parent\'s account' : '18 and older'}</span>
             </button>
@@ -261,10 +267,10 @@ function ProfileFields({ form, setForm, accountWord = 'account' }) {
             <legend style={{ fontWeight: 600, marginBottom: 8 }}>How old is your child?</legend>
             <div className="segmented" role="radiogroup">
               <button type="button" role="radio" aria-checked={form.ageGroup === 'under13'} className="choice" onClick={() => setForm({ ...form, ageGroup: 'under13' })}>
-                <span className="emoji" aria-hidden>🧒</span><b>Under 13</b>
+                <IconTile name="puzzle" tone="amber" size={36} style={{ marginBottom: 6 }} /><b>Under 13</b>
               </button>
               <button type="button" role="radio" aria-checked={form.ageGroup === 'teen'} className="choice" onClick={() => setForm({ ...form, ageGroup: 'teen' })}>
-                <span className="emoji" aria-hidden>🧑</span><b>13 – 17</b>
+                <IconTile name="grad" tone="teal" size={36} style={{ marginBottom: 6 }} /><b>13 – 17</b>
               </button>
             </div>
           </fieldset>

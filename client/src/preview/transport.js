@@ -4,7 +4,7 @@
 import DATA from './data.json';
 import { runStarter } from '@starter';
 import { checkRelevance, checkRequest, docText } from '@guard';
-import { applyActivity, todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, MEDAL_VIEWS } from '@play';
+import { applyActivity, todaySummary, levelInfo, levelTitle, PLAN_ORDER, ideaProgress, ideaReward, IDEA_LIMIT, MEDAL_VIEWS, dayKey, flashbackPicks } from '@play';
 
 const KEY = 'mc-preview-db-v9';
 const AI_OFF = 'This AI feature needs the full Marketcraft app. Everything else in this preview works.';
@@ -262,7 +262,13 @@ on('POST', '/lessons/research', () => { need(); fail(503, AI_OFF); });
 on('GET', '/lessons/:id', ({ id: lid }) => {
   const u = need();
   const l = db().lessons.find((x) => x.id === lid && visibleLesson(u)(x)) ?? fail(404, 'Lesson not found.');
-  return { lesson: stripAnswers(l), completed: u.completedLessons.includes(l.id) };
+  return { lesson: { ...stripAnswers(l), scenario: DATA.scenarios?.[l.slug] ?? null }, completed: u.completedLessons.includes(l.id) };
+});
+on('POST', '/lessons/:id/check', ({ id: lid }, body) => {
+  const u = need();
+  const l = db().lessons.find((x) => x.id === lid && visibleLesson(u)(x)) ?? fail(404, 'Lesson not found.');
+  const q = l.quiz?.[body.index] ?? fail(400, 'Unknown question.');
+  return { correct: body.answer === q.answerIndex, answerIndex: q.answerIndex };
 });
 on('POST', '/lessons/:id/complete', ({ id: lid }, body) => {
   const u = need();
@@ -499,6 +505,40 @@ on('PUT', '/play/ideas/:id', ({ id: iid }, body) => {
   return { idea: ideaOut(idea), ...r };
 });
 on('DELETE', '/play/ideas/:id', ({ id: iid }) => { const u = need(); db().ideas = (db().ideas ?? []).filter((i) => !(i.id === iid && i.userId === u.id)); return { ok: true }; });
+
+on('POST', '/play/scenario/:id', ({ id: lid }, body) => {
+  const u = need();
+  const l = db().lessons.find((x) => x.id === lid && visibleLesson(u)(x));
+  const sc = l && DATA.scenarios?.[l.slug];
+  if (!sc) fail(404, 'Scenario not found.');
+  const opt = sc.options[body.choice] ?? fail(400, 'Pick one of the options.');
+  u.scenariosDone ??= [];
+  const first = !u.scenariosDone.includes(l.id);
+  let newBadges = [];
+  if (first) { u.scenariosDone.push(l.id); newBadges = reward(u, 5, u.scenariosDone.length >= 10 ? ['decider'] : []); }
+  const play = activity(u, 'scenario');
+  return { best: opt.best, xpEarned: first ? 5 : 0, newBadges: [...newBadges, ...play.newBadges], play };
+});
+on('GET', '/play/review', () => {
+  const u = need();
+  const lessons = db().lessons.filter((l) => u.completedLessons.includes(l.id) && (l.quiz?.length ?? 0) > 0);
+  const today = dayKey();
+  const picks = flashbackPicks(lessons.map((l) => ({ id: l.id, count: l.quiz.length })), `${u.id}:${today}`, 3);
+  return {
+    date: today, doneToday: u.reviewLast === today,
+    questions: picks.map(({ id: qid, index }) => { const l = lessons.find((x) => x.id === qid); const q = l.quiz[index]; return { lessonId: l.id, lessonTitle: l.title, index, question: q.question, options: q.options }; }),
+  };
+});
+on('POST', '/play/review/done', () => {
+  const u = need();
+  const today = dayKey();
+  if (u.reviewLast === today) return { xpEarned: 0, newBadges: [], play: null };
+  u.reviewLast = today;
+  u.reviewDays = (u.reviewDays ?? 0) + 1;
+  const newBadges = reward(u, 10, u.reviewDays >= 5 ? ['flashback'] : []);
+  const play = activity(u, 'review');
+  return { xpEarned: 10, newBadges: [...newBadges, ...play.newBadges], play };
+});
 
 // ---- showcase views + junior medal ----------------------------------------------------
 on('POST', '/showcase/:id/view', ({ id: sid }) => {
